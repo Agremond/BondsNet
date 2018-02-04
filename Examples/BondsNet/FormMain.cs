@@ -467,19 +467,21 @@ namespace BondsNet
         {
             DataRowCollection allRows;
             DataRow[] searchedRows;
-            int rowIndex;
+            int rowIndex = 0;
+            int j = 0;
 
             for (int i = 0; i < positions.Count; i++)
             {
                 if(positions[i].entranceOrderQty != 0)
                 {
 
-                    dataGridViewPositions.Rows[i].Cells["posToolName"].Value = tools[i].SecurityCode;
-                    dataGridViewPositions.Rows[i].Cells["posOperation"].Value = "Покупка";//dirty hack
-                    dataGridViewPositions.Rows[i].Cells["posPrice"].Value = positions[i].priceEntrance;
-                    dataGridViewPositions.Rows[i].Cells["posQty"].Value = positions[i].entranceOrderQty;
-                    dataGridViewPositions.Rows[i].Cells["posRemains"].Value = positions[i].toolQty;
-                    dataGridViewPositions.Rows[i].Cells["posState"].Value = positions[i].State.ToString();
+                    dataGridViewPositions.Rows[j].Cells["posToolName"].Value = tools[i].SecurityCode;
+                    dataGridViewPositions.Rows[j].Cells["posOperation"].Value = "Покупка";//dirty hack
+                    dataGridViewPositions.Rows[j].Cells["posPrice"].Value = positions[i].priceEntrance;
+                    dataGridViewPositions.Rows[j].Cells["posQty"].Value = positions[i].entranceOrderQty;
+                    dataGridViewPositions.Rows[j].Cells["posRemains"].Value = positions[i].toolQty;
+                    dataGridViewPositions.Rows[j].Cells["posState"].Value = positions[i].State.ToString();
+                    j++;
 
                 }
                 else
