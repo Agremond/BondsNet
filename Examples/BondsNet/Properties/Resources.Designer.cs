@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace QuikSharpDemo.Properties {
+namespace BondsNet.Properties {
     using System;
     
     

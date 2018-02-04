@@ -14,7 +14,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace QuikSharpDemo
+namespace BondsNet
 {
     public partial class FormOutputTable : Form
     {

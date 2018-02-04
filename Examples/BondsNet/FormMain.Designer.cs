@@ -1,4 +1,4 @@
-﻿namespace QuikSharpDemo
+﻿namespace BondsNet
 {
     partial class FormMain
     {
@@ -941,7 +941,7 @@
             this.Controls.Add(this.tabControl);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "FormMain";
-            this.Text = "QuikSharp Demo";
+            this.Text = "BondsNet";
             this.Load += new System.EventHandler(this.FormMain_Load);
             this.tabPage0.ResumeLayout(false);
             this.tabPage0.PerformLayout();

@@ -1,4 +1,4 @@
-﻿namespace QuikSharpDemo
+﻿namespace BondsNet
 {
     partial class FormOutputTable
     {

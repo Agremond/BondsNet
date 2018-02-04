@@ -13,8 +13,10 @@ using QuikSharp.DataStructures.Transaction;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.IO;
 
-namespace QuikSharpDemo
+
+namespace BondsNet
 {
     public partial class FormMain : Form
     {
@@ -25,8 +27,14 @@ namespace QuikSharpDemo
         bool pause = false;//пауза между заявками. временный механизм
         bool started = false;//флаг запуска робота
 
-        //список инструментов.в будущем надо сделать загрузку инструментов из файла
-        string[] Securities = {"RU000A0JTF68", "RU000A0JNPK5" };
+        //Заменить н акласс Securities;
+       //string[] Securities = { "RU000A0JV3Z4", "RU000A0JV3M2" , "RU000A0JVPR3", "RU000A0JVM81", "RU000A0JV2H4" };
+
+        string BCatalog_path = @"bondscatalog.csv";//заменить на Securities
+
+
+        // string[] Securities = { "RU000A0JTF68" };
+
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -35,25 +43,31 @@ namespace QuikSharpDemo
         int secCodeindex = 0;
         //код клиента.
         string clientCode;
-        //таблица заявок. Для back-end механизма 
-        IDictionary<string, string> tasks = new Dictionary<string, string>();
-                
-        
-        
+
+
+        //список инструментов.
+        List<Security> Securities = new List<Security>();
+        //список транзакций изменений заявок
         List<Order> listOrders;
+        //список транзакций сделок
         List<Trade> listTrades;
+        //список ответов на отправленные транзакци
+        List<TransactionReply> listTransactionReply;
+
         List<DepoLimitEx> listDepoLimits;
         List<PortfolioInfoEx> listPortfolio;
         List<MoneyLimit> listMoneyLimits;
         List<MoneyLimitEx> listMoneyLimitsEx;
         Settings settings;
 
+        //стаканы по инструментам
         List<OrderBook> toolsOrderBook;
+        //инструменты
         List<Tool> tools;
+        //позиции по инструментам
         List<Position> positions;
 
-
-        
+       
        // FuturesClientHolding futuresPosition;
 
         public FormMain()
@@ -63,6 +77,35 @@ namespace QuikSharpDemo
         }
         void Init()
         {
+            try
+            {
+                using (StreamReader reader = new StreamReader(BCatalog_path))
+                {//открытие файла для чтения
+                    string textline;
+                    while ((textline = reader.ReadLine()) != null)
+                    {
+                        if (textline.Split(':') != null)
+                        {
+                            string ISIN = textline.Split(':')[0];
+                            string goalACY = textline.Split(':')[1];
+                            string rank = textline.Split(':')[2];
+
+                            Securities.Add(new Security(ISIN, Convert.ToInt32(rank), Convert.ToDouble(goalACY)));
+                        }
+                           
+                        else { MessageBox.Show("Ошибка чтения списка бумаг!"); }
+
+                    }
+
+                }
+            }
+            catch (Exception e)
+            {
+                textBoxLogsWindow.AppendText("Ошибка загрузка списка облигаций." + Environment.NewLine);
+                textBoxLogsWindow.AppendText(e.Message);
+
+            }
+
             textBoxSecCode.Text = secCode;
         
             textBoxClassCode.Text = classCode;
@@ -83,18 +126,29 @@ namespace QuikSharpDemo
             listBoxCommands.Items.Add("Получить таблицы денежных лимитов");
             comboBoxMode.SelectedItem = "Виртуальный";
 
+            
             textBoxQty.Text = settings.QtyOrder.ToString();
             textBoxSlip.Text = settings.KoefSlip.ToString();
-            secCode = Securities[0];
-            foreach (string curSec in Securities)
+            secCode = Securities[0].SecCode;
+            for( int i = 0; i < Securities.Count; i++)
             {
-                listBoxSecCode.Items.Add(curSec);
+                listBoxSecCode.Items.Add(Securities[i].SecCode);
+               
+                dataGridViewPositions.Rows.Add();
             }
             listBoxSecCode.SelectedIndex = 0;
 
-            tools = new List<Tool>(Securities.Length);
-            toolsOrderBook = new List<OrderBook>(Securities.Length);
-            positions = new List<Position>(Securities.Length);
+            tools = new List<Tool>(Securities.Count);
+            toolsOrderBook = new List<OrderBook>(Securities.Count);
+            positions = new List<Position>(Securities.Count);
+
+            listTransactionReply = new List<TransactionReply>();
+            listOrders = new List<Order>();
+            listTrades = new List<Trade>();
+
+
+   //         Graphics graf = picGraph.CreateGraphics();
+            
         }
 
         private void buttonStart_Click(object sender, EventArgs e)
@@ -104,7 +158,6 @@ namespace QuikSharpDemo
             {
                 textBoxLogsWindow.AppendText("Подключаемся к терминалу Quik..." + Environment.NewLine);
                 _quik = new Quik(Quik.DefaultPort, new InMemoryStorage());    // инициализируем объект Quik
-                //_quik = new Quik(34136, new InMemoryStorage());    // отладочное подключение
             }
             catch
             {
@@ -144,6 +197,7 @@ namespace QuikSharpDemo
                 buttonStartStop.Text = "СТАРТ";
                 buttonStartStop.Enabled = true;
                 timerRenewForm.Enabled = false ;
+
                 started = false;
             }
             else
@@ -151,11 +205,10 @@ namespace QuikSharpDemo
                 try
                 {
                     
-                    int i = 0;
-
-                    foreach (string curSec in Securities)
+                  ////пересмотреть!!!!!!!!!!!!!!!!!!!  
+                    for (int i = 0; i < Securities.Count; i++)
                     {
-                        secCode = curSec;
+                        secCode = Securities[i].SecCode;
                         textBoxLogsWindow.AppendText("Определяем код класса инструмента " + secCode + ", по списку классов" + "..." + Environment.NewLine);
                         try
                         {
@@ -171,8 +224,10 @@ namespace QuikSharpDemo
                             textBoxLogsWindow.AppendText("Определяем код клиента..." + Environment.NewLine);
                             clientCode = _quik.Class.GetClientCode().Result;
                             textBoxClientCode.Text = clientCode;
+                          
+                            
                             textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
-                            tools.Add(new Tool(_quik, secCode, classCode, settings.KoefSlip));
+                            tools.Add(new Tool(_quik, Securities[i], classCode, settings.KoefSlip));
                             positions.Add(new Position());
 
                             if (tools[i] != null && tools[i].Name != null && tools[i].Name != "")
@@ -188,7 +243,6 @@ namespace QuikSharpDemo
                                     textBoxValue.Text = Convert.ToString(tools[i].GuaranteeProviding);
                                     textBoxLastPrice.Text = Convert.ToString(tools[i].LastPrice);
                                     textBoxCoupon.Text = Convert.ToString(GetPositionT2(_quik, tools[i], clientCode));
-                                    //tools[i].
 
                                 }
                                 textBoxLogsWindow.AppendText("Подписываемся на стакан..." + Environment.NewLine);
@@ -201,10 +255,7 @@ namespace QuikSharpDemo
                                     textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
 
                                     toolsOrderBook.Add(new OrderBook());
-                                    // toolOrderBook = new OrderBook();
-
-
-
+                                   
                                     timerRenewForm.Enabled = true;
                                     started = true;
 
@@ -230,7 +281,7 @@ namespace QuikSharpDemo
                             buttonStartStop.Text = "СТОП";
 
                         }
-                        i += 1;
+                      
                     }
 
                 }
@@ -238,177 +289,142 @@ namespace QuikSharpDemo
                 {
                     textBoxLogsWindow.AppendText("Ошибка получения данных по инструменту." + Environment.NewLine);
                 }
-                textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnQuote'..." + Environment.NewLine);
+                textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnQuote', 'OnTransReplay', 'OnTrade', 'Onorder'..." + Environment.NewLine);
+
                 _quik.Events.OnQuote += OnQuoteDo;
                 _quik.Events.OnTrade += OnTradeDo;
-                _quik.Events.OnTransReply += OnTransReplayDo;
+                _quik.Events.OnTransReply += OnTransReplyDo;
                 _quik.Events.OnOrder += OnOrderDo;
 
             }
         }
         void Run()
         {
-            GetIndicators();
-            HandleIncomingTransactions();
-
-            if (!pause)//пауза на время обработки входящих транзакций
+            if (tools != null)//если tools существует, обрабатываем
             {
-                
+                CalcBestOffer();//рассчиать лучшее предложение
+                CalcIndicators();
                 CheckConditionEntrance();
+                Positions2Table();
             }
-
-            textBoxBestBid.Text = "НД";
-            textBoxBestOffer.Text = "НД";
+                
 
             if(positions[secCodeindex] != null )
             {  
                 textBoxPositionPE.Text = Math.Round(positions[secCodeindex].priceEntrance, tools[secCodeindex].PriceAccuracy).ToString();
                 textBoxPositionQty.Text = positions[secCodeindex].toolQty.ToString();
             }
+         
 
-            if (toolsOrderBook != null)
+            if (toolsOrderBook != null && toolsOrderBook[secCodeindex].bid != null)
             {
-                if (toolsOrderBook[secCodeindex].bid != null)
-                {
-                    textBoxBestBid.Text = Convert.ToString(toolsOrderBook[secCodeindex].bid[0].price);
-                }
+                int bidID = toolsOrderBook[secCodeindex].bid.Length - 1;
+                if (toolsOrderBook[secCodeindex].bid[bidID].price > 0)
+                    textBoxBestBid.Text = Convert.ToString(toolsOrderBook[secCodeindex].bid[bidID].price);
+                else
+                    textBoxBestBid.Text = "НД";
 
             }
-
+            else
+            {
+                textBoxBestBid.Text = "НД";
+            }
             if ( tools != null)
             {
-                if (tools[secCodeindex].CurrentACY != -999)
-                {
+                if (tools[secCodeindex].CurrentACY >= 0)
                     textBoxACY.Text = Convert.ToString(tools[secCodeindex].CurrentACY + "%");
-                }
-                if (tools[secCodeindex].Offer != -999)
-                {
-                    textBoxBestOffer.Text = Convert.ToString(tools[secCodeindex].Offer);
-                }
+                else
+                    textBoxACY.Text = "НД";
 
-              
+                if (tools[secCodeindex].Offer >= 0)
+                    textBoxBestOffer.Text = Convert.ToString(tools[secCodeindex].Offer);
+                else
+                    textBoxBestOffer.Text = "НД";
             }
 
             //if (futuresPosition != null) textBoxVarMargin.Text = futuresPosition.varMargin.ToString(); 
 
         }
-        void HandleIncomingTransactions()//тестовый обработчик входящих транзакций
-        {
-            ICollection<string> tr_keys;
 
-                 
-            try
-            {
-                tr_keys = _quik.Storage.Keys();//получаем список ключей хранилища транзакций
-                foreach (string tr_key in tr_keys)//обрабатываем все транзакции в хранилище
-                {
-                    Type trans = _quik.Storage.Get<Type>(tr_key);//получаем транзакцию из списка
-
-                    Type type = trans.GetType();
-
-                    switch (type.FullName)
-                    {
-                        case "TransactionReply":
-
-                            
-
-                            break;
-
-                        case "Trade":
-                            break;
-
-                        case "StopOrder":
-                            break;
-
-                        case "Order":
-                            break;
-
-
-
-                    }
-                }
-            }
-            catch (Exception er)
-            {
-                textBoxLogsWindow.AppendText("Ошибка получения очереди транзакций. Error: " + er.Message + Environment.NewLine);
-            }
-            
-
-        }
-        void CalculateOffer(int i)//реализовать non void с возвращением ошибки
+        void CalcBestOffer()//реализовать non-void с возвращением ошибки
         {
            
             if (toolsOrderBook != null)
             {
-                for (int j = 0; j <= toolsOrderBook.Capacity - 1; j++)
+                for (int i = 0; i < toolsOrderBook.Count; i++)
                 {
-                    if (toolsOrderBook[j].sec_code != null && toolsOrderBook[j].class_code != null)
-                        if (tools[i].SecurityCode == toolsOrderBook[j].sec_code && tools[i].ClassCode == toolsOrderBook[j].class_code)
+                    if (toolsOrderBook[i].sec_code != null && toolsOrderBook[i].class_code != null)
+                        if (tools[i].SecurityCode == toolsOrderBook[i].sec_code && tools[i].ClassCode == toolsOrderBook[i].class_code)
                         {
                             if (toolsOrderBook[i].offer != null)
                             {
                                 tools[i].Offer = toolsOrderBook[i].offer[0].price;
-                                
+   
                             }
-                            break;
+                        }
+                        else
+                        {
+                            textBoxLogsWindow.AppendText("Рассинхронизация OrderBook" + Environment.NewLine);
                         }
                 }
             }
 
 
         }
-        void GetIndicators()
+        void CalcIndicators()
         {
 
             decimal offer = 0;
             decimal coupon;
             decimal value;
             decimal couponPeriod;
-            decimal lastPrice;
-            
 
-            if (tools != null)//если tools существует, обрабатываем
-                for ( int i = 0; i <= tools.Capacity-1;i++)
+
+            for (int i = 0; i < tools.Count; i++)
+            {
+                coupon = tools[i].Coupon;
+                value = tools[i].Value;
+                couponPeriod = tools[i].CouponPeriod;
+
+
+                offer = Convert.ToDecimal(tools[i].Offer);
+
+                if (value > 0 && offer > 0 && coupon > 0 && couponPeriod > 0)
                 {
-                    coupon = tools[i].Coupon;
-                    value = tools[i].Value;
-                    couponPeriod = tools[i].CouponPeriod;
-                    lastPrice = tools[i].LastPrice;
-
-                    CalculateOffer(i);
-
-                    offer = Convert.ToDecimal(tools[i].Offer);
-
-                    if (value != 0 && offer != 0 && coupon != 0 && couponPeriod != 0)
-                    {
-                        tools[i].CurrentACY = Convert.ToDouble(Math.Round(((364 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
-                    }
-                    else
-                    {
-                        tools[i].CurrentACY = -999;//dirty hack
-                    }
-
-                    i += 1;
+                    tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
                 }
+                else
+                {
+                    tools[i].CurrentACY = -999;//dirty hack
+                }
+
+               //добавит рассчет индикатора Боллинджера
+
+
+            }
            
         }
         void CheckConditionEntrance()
         {
-            // при подходящей доходности отправляем заявку на покупку
-            int i = 0;
-  
-            foreach (Tool tool in tools)
+            decimal priceEntrance = 0;
+
+            for( int i = 0; i < tools.Count; i++)
             {
-                if(positions[i].toolQty == 0 )
+                if(positions[i].toolQty == 0 && positions[i].State == State.Waiting)
                 {
-                    if (tool.CurrentACY >= tool.GoalACY )
+                    //добавить обработку существующих бумаг. 
+                    //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
+
+                    if (tools[i].CurrentACY >= tools[i].GoalACY) // при подходящей доходности отправляем заявку на покупку
                     {
-                        if(tool.Offer != -999)
+                        if(tools[i].Offer > 0)
                         {
-                            decimal priceEntrance = Convert.ToDecimal(tool.Offer) + tool.Slip;
-                            
-                            EntrancePosition(Operation.Buy, priceEntrance, settings.QtyOrder, i);
-                            textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tool.SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
+                            priceEntrance  = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
+                            int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
+
+
+                            EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
+                            textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
                         }
                     }
                 }
@@ -416,49 +432,84 @@ namespace QuikSharpDemo
                 {
                     ;//есть позиция по инструменту
                 }
-
-                i++;
             }
 
         }
-        void EntrancePosition(Operation operation, decimal price, int qty, int toolID)
+        void EntrancePosition(Operation operation, decimal price, int qty, Tool tool)
         {
-            if(!pause)
-            {
-                positions[toolID].priceEntrance = price;
-                positions[toolID].entranceOrderQty = qty * tools[toolID].Lot;
-                positions[toolID].toolQty = positions[toolID].entranceOrderQty;
-                positions[toolID].dateTimeEntrance = DateTime.Now;
+            int i = tools.IndexOf(tool); ;
+          //  if (!pause)
+          //  {
+                positions[i].priceEntrance = price;
+                positions[i].entranceOrderQty = qty * tool.Lot;
+                positions[i].toolQty = positions[i].entranceOrderQty;
+                positions[i].dateTimeEntrance = DateTime.Now;
 
                 if (settings.RobotMode == "Боевой")
                 {
-                    positions[toolID].entranceOrderID = NewOrder(_quik, tools[toolID], operation, price, qty * tools[toolID].Lot);
-                    if (positions[toolID].entranceOrderID != 0)
+                    positions[i].entranceOrderID = NewOrder(_quik, tool, operation, price, positions[i].entranceOrderQty);
+                    if (positions[i].entranceOrderID != 0)
                     {
                         pause = true;
-                        textBoxLogsWindow.AppendText("ID заявки - " + positions[toolID].entranceOrderID + Environment.NewLine);
+                        textBoxLogsWindow.AppendText("ID заявки - " + positions[i].entranceOrderID + Environment.NewLine);
                     }
                 }
                 else
                 {
-                    //if (operation == Operation.Buy) positions[toolID].toolQty = settings.QtyOrder * tools[toolID].Lot;
-                    //else positions[toolID].toolQty = settings.QtyOrder * tools[toolID].Lot * -1;
                     textBoxLogsWindow.AppendText("ID заявки - ТЕСТ" + Environment.NewLine);
-                    NewPos2Table(tools[toolID].Name, positions[toolID].toolQty, positions[toolID].dateTimeEntrance, positions[toolID].priceEntrance, toolID);
+                    NewPos2Table(tool, positions[i].toolQty, positions[i].dateTimeEntrance, positions[i].priceEntrance);
                 }
 
                
+            //}
+        }
+        void Positions2Table()
+        {
+            DataRowCollection allRows;
+            DataRow[] searchedRows;
+            int rowIndex;
+
+            for (int i = 0; i < positions.Count; i++)
+            {
+                if(positions[i].entranceOrderQty != 0)
+                {
+
+                    dataGridViewPositions.Rows[i].Cells["posToolName"].Value = tools[i].SecurityCode;
+                    dataGridViewPositions.Rows[i].Cells["posOperation"].Value = "Покупка";//dirty hack
+                    dataGridViewPositions.Rows[i].Cells["posPrice"].Value = positions[i].priceEntrance;
+                    dataGridViewPositions.Rows[i].Cells["posQty"].Value = positions[i].entranceOrderQty;
+                    dataGridViewPositions.Rows[i].Cells["posRemains"].Value = positions[i].toolQty;
+                    dataGridViewPositions.Rows[i].Cells["posState"].Value = positions[i].State.ToString();
+
+                }
+                else
+                {
+                    allRows = ((DataTable)dataGridViewPositions.DataSource).Rows;
+
+                    searchedRows = ((DataTable)dataGridViewPositions.DataSource).Select(tools[i].SecurityCode);
+
+                    if(searchedRows != null)
+                    {
+                        rowIndex = allRows.IndexOf(searchedRows[0]);
+
+                        dataGridViewPositions.Rows.RemoveAt(rowIndex);
+                    }
+                   
+
+                }
+               
             }
+
         }
 
-        void NewPos2Table(string toolName, int qty, DateTime timeEntr, decimal price, int toolID)
+        void NewPos2Table(Tool tool, int qty, DateTime timeEntr, decimal price)
         {
             dataGridViewDeals.Rows.Add();
             int i = dataGridViewDeals.Rows.Count - 1;
-            dataGridViewDeals.Rows[i].Cells["ToolName"].Value = toolName;
+            dataGridViewDeals.Rows[i].Cells["ToolName"].Value = tool.Name;
             dataGridViewDeals.Rows[i].Cells["Qty"].Value = qty;
             dataGridViewDeals.Rows[i].Cells["TimeEntr"].Value = timeEntr.ToShortTimeString();
-            dataGridViewDeals.Rows[i].Cells["PriceEntr"].Value = Math.Round(price, tools[toolID].PriceAccuracy);
+            dataGridViewDeals.Rows[i].Cells["PriceEntr"].Value = Math.Round(price, tool.PriceAccuracy);
             int LastRow = dataGridViewDeals.RowCount - 1;
             dataGridViewDeals.FirstDisplayedScrollingRowIndex = LastRow;
         }
@@ -467,76 +518,144 @@ namespace QuikSharpDemo
         /// </summary>
         void OnTradeDo(Trade trade)
         {
-            String corrID;
-            for (int i = 0; i < positions.Capacity - 1; i++)
-            {
-                corrID = clientCode + "//" + positions[i].entranceOrderID;
+            //исключаем повторный вызов OnTrade
+            if (listTrades.Contains(trade))
+                return;
+            //добавляем новую сделку в хранилище сделок
+            listTrades.Add(trade);
 
-                //обрабатываем сделки относящиейся к текущему нструменту
-                if (trade.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+            String corrID;
+
+            int i = GetIndexOfTool(trade.SecCode, trade.ClassCode);
+
+            if (i == -1)
+                return;
+
+            corrID = clientCode + "//" + positions[i].entranceOrderID;
+
+            //обрабатываем сделки относящиейся к текущему инструменту by ID
+            if (trade.Comment.Equals(corrID))
+            {
+                if (positions[i].State == State.Active || positions[i].State == State.Waiting)
                 {
                     positions[i].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
 
-                    if(positions[i].toolQty <= 0)//заявка полностью удовлетворена
+                    //зафиксировать цену покупки для статистики
+                    //....
+                    ///////////////////////
+
+                    if (positions[i].toolQty <= 0)//заявка полностью удовлетворена
                     {
 
                         positions[i].State = State.Completed;//заявка выполнена
                     }
-
-                }
+                }       
             }
         }
 
         /// <summary>
         /// Функция вызывается терминалом QUIK при получении ответа на транзакцию пользователя.
         /// </summary>
-        void OnTransReplayDo(TransactionReply replay)
+        void OnTransReplyDo(TransactionReply reply)
         {
-            if( replay.Status == 3)
+            //исключаем повторный вызов OnTransReply
+            if (listTransactionReply.Contains(reply))
+               return;
+            listTransactionReply.Add(reply);
+
+            int i = GetIndexOfTool(reply.SecCode, reply.ClassCode);
+
+            if (i == -1)
+                return;
+
+
+            if (reply.TransID == positions[i].entranceOrderID)
             {
-               for(int i = 0; i < positions.Capacity-1;i++)
+                if (reply.Status == 3)
+                { 
+                    positions[i].State = (positions[i].State == State.Waiting) ? State.Active : positions[i].State;
+                }
+                else
                 {
-                    if(replay.TransID == positions[i].entranceOrderID)//what is the format: СС//transid or transid
-                    {
-                        positions[i].State = (positions[i].State == State.Waiting) ? State.Active : positions[i].State;
-                    }
+                    if (reply.Status > 3)
+                        positions[i].State = (positions[i].State == State.Waiting) ? State.Error : positions[i].State;
                 }
             }
+
+           
         }
         /// <summary>
         /// Функция вызывается терминалом QUIK при получении заявки или изменении параметров заявки.
         /// </summary>
         void OnOrderDo(Order order)
         {
-            
+            //исключаем повторный вызов OnOrder
+            if (listOrders.Contains(order))
+                return;
+
+            listOrders.Add(order);//добавляем транзацию изменения заявки в хранилище
+
+            String corrID;
+            int i = GetIndexOfTool(order.SecCode, order.ClassCode);
+
+            if (i == -1)
+                return;
+
+            corrID = clientCode + "//" + positions[i].entranceOrderID;
+
+            //обрабатываем заявки относящиейся к текущему нструменту
+
+            if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+            {
+                if (order.Capacity == 0 || order.State == State.Completed)
+                {
+                    positions[i].State = State.Completed;//заявка выполнена
+                }
+                else
+                {
+                    if (order.Flags.HasFlag(OrderTradeFlags.Canceled))
+                    {
+                        positions[i].State = State.Canceled;//заявка отменена
+                    }
+                }
+            }
+           
+
+
+
+            //for (int i = 0; i < positions.Capacity; i++)
+            //{
+            //    corrID = clientCode + "//" + positions[i].entranceOrderID;
+            //    //обрабатываем заявки относящиейся к текущему нструменту
+
+            //    if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+            //    {
+            //        if (order.Capacity == 0 || order.State == State.Completed)
+            //        {
+            //            positions[i].State = State.Completed;//заявка выполнена
+            //        }
+            //        else
+            //        {
+            //            if(order.Flags.HasFlag(OrderTradeFlags.Canceled))
+            //            {
+            //                positions[i].State = State.Canceled;//заявка отменена
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         void OnQuoteDo(OrderBook quote)
         {
-            int i = 0;
-            foreach (Tool tool in tools)
-            {
-                if (tool.SecurityCode == quote.sec_code && tool.ClassCode == quote.class_code)
-                {
-                    toolsOrderBook[i] = quote;
-                }
-                i += 1;
-            }
+            int i = GetIndexOfTool(quote.sec_code, quote.class_code);
+
+            if (i == -1)
+                return;
+
+            toolsOrderBook[i] = quote;
+           
         }
-        void KillOrder(int SecCodeIndex)
-        {
-            if (order != null && order.OrderNum > 0)
-            {
-                textBoxLogsWindow.AppendText("Удаляем заявку на покупку с номером - " + order.OrderNum + " ..." + Environment.NewLine);
-            }
-            long x = _quik.Orders.KillOrder(order).Result;
-            textBoxLogsWindow.AppendText("Результат - " + x + " ..." + Environment.NewLine);
-            textBoxOrderNumber.Text = "";
-
-
-
-        }
-        
+                
 
         void OnFuturesClientHoldingDo(FuturesClientHolding futPos)
         {
@@ -552,13 +671,17 @@ namespace QuikSharpDemo
             textBoxLot.Text = Convert.ToString(tools[secCodeindex].Lot);
             textBoxStep.Text = Convert.ToString(tools[secCodeindex].Step);
             textBoxValue.Text = Convert.ToString(tools[secCodeindex].GuaranteeProviding);
+            textBoxGoalACY.Text = Convert.ToString(tools[secCodeindex].GoalACY);
 
             textBoxLastPrice.Text = Convert.ToString(tools[secCodeindex].LastPrice);
             textBoxCoupon.Text = Convert.ToString(tools[secCodeindex].Coupon);
             textBoxValue.Text = Convert.ToString(tools[secCodeindex].Value);
             textBoxCPeriod.Text = Convert.ToString(tools[secCodeindex].CouponPeriod);
+            textBoxRank.Text = Convert.ToString(tools[secCodeindex].Rank);
 
+        
             Run();
+
         }
         private void listBoxCommands_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -600,6 +723,9 @@ namespace QuikSharpDemo
         }
         private void buttonCommandRun_Click(object sender, EventArgs e)
         {
+            List<Order> tmplistOrders;
+            List<Trade> tmplistTrades;
+
             Order order = null;
             List<Candle> toolCandles = null;
             FormOutputTable toolCandlesTable = null;
@@ -638,39 +764,30 @@ namespace QuikSharpDemo
                     try
                     {
                         decimal priceInOrder = Math.Round(tools[secCodeindex].LastPrice - tools[secCodeindex].LastPrice / 20, tools[secCodeindex].PriceAccuracy);
+                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceInOrder / 100) * tools[secCodeindex].Value);
                         textBoxLogsWindow.AppendText("Выставляем заявку на покупку, по цене:" + priceInOrder + " ..." + Environment.NewLine);
-                        long transactionID = NewOrder(_quik, tools[secCodeindex], Operation.Buy, priceInOrder, 1);
-                        if (transactionID > 0)
+
+                        EntrancePosition(Operation.Buy, priceInOrder, qtyOrder, tools[secCodeindex]);
+
+                        long transactionID = positions[secCodeindex].entranceOrderID;
+                        try
                         {
-                            Thread.Sleep(500);
-                            textBoxLogsWindow.AppendText("Заявка выставлена. ID транзакции - " + transactionID + Environment.NewLine);
-                            try
+                            tmplistOrders = _quik.Orders.GetOrders().Result;
+                            foreach (Order _order in tmplistOrders)
                             {
-                                listOrders = _quik.Orders.GetOrders().Result;
-                                foreach (Order _order in listOrders)
+                                if (_order.TransID == transactionID && _order.ClassCode == tools[secCodeindex].ClassCode && _order.SecCode == tools[secCodeindex].SecurityCode)
                                 {
-                                    if (_order.TransID == transactionID && _order.ClassCode == tools[secCodeindex].ClassCode && _order.SecCode == tools[secCodeindex].SecurityCode)
-                                    {
-                                        textBoxLogsWindow.AppendText("Заявка выставлена. Номер заявки - " + _order.OrderNum + Environment.NewLine);
-                                        
-                                        textBoxOrderDirection.Text = _order.Operation.ToString();
-                                        textBoxOrderBalance.Text = _order.Balance.ToString();
-                                        textBoxOrderNumber.Text = _order.OrderNum.ToString();
-                                        textBoxOrderPrice.Text = _order.Price.ToString();
-                                        textBoxOrderQty.Text = _order.Quantity.ToString();
-                                        order = _order;
-                                    }
+                                    textBoxLogsWindow.AppendText("Заявка выставлена. Номер заявки - " + _order.OrderNum + Environment.NewLine);
+
+                                    order = _order;
                                 }
                             }
-                            catch (Exception er)
-                            {
-                                textBoxLogsWindow.AppendText("Ошибка получения номера заявки. Error: " + er.Message + Environment.NewLine);
-                            }
                         }
-                        else
+                        catch (Exception er)
                         {
-                            textBoxLogsWindow.AppendText("Неудачная попытка выставления заявки." + Environment.NewLine);
+                            textBoxLogsWindow.AppendText("Ошибка получения номера заявки. Error: " + er.Message + Environment.NewLine);
                         }
+
                     }
                     catch
                     {
@@ -681,37 +798,28 @@ namespace QuikSharpDemo
                     try
                     {
                         decimal priceInOrder = Math.Round(tools[secCodeindex].LastPrice + tools[secCodeindex].Step * 5, tools[secCodeindex].PriceAccuracy);
+                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceInOrder / 100) * tools[secCodeindex].Value);
                         textBoxLogsWindow.AppendText("Выставляем заявку на покупку, по цене:" + priceInOrder + " ..." + Environment.NewLine);
-                        long transactionID = NewOrder(_quik, tools[secCodeindex], Operation.Buy, priceInOrder, 1);
-                        if (transactionID > 0)
+
+                        EntrancePosition(Operation.Buy, priceInOrder, qtyOrder, tools[secCodeindex]);
+
+                        long transactionID = positions[secCodeindex].entranceOrderID;
+                        try
                         {
-                            textBoxLogsWindow.AppendText("Заявка выставлена. ID транзакции - " + transactionID + Environment.NewLine);
-                            Thread.Sleep(500);
-                            try
+                            tmplistOrders = _quik.Orders.GetOrders().Result;
+                            foreach (Order _order in tmplistOrders)
                             {
-                                listOrders = _quik.Orders.GetOrders().Result;
-                                foreach (Order _order in listOrders)
+                                if (_order.TransID == transactionID && _order.ClassCode == tools[secCodeindex].ClassCode && _order.SecCode == tools[secCodeindex].SecurityCode)
                                 {
-                                    if (_order.TransID == transactionID && _order.ClassCode == tools[secCodeindex].ClassCode && _order.SecCode == tools[secCodeindex].SecurityCode)
-                                    {
-                                        textBoxLogsWindow.AppendText("Заявка выставлена. Номер заявки - " + _order.OrderNum + Environment.NewLine);
-                                        textBoxOrderNumber.Text = _order.OrderNum.ToString();
-                                        order = _order;
-                                    }
-                                    else
-                                    {
-                                        textBoxOrderNumber.Text = "---";
-                                    }
+                                    textBoxLogsWindow.AppendText("Заявка выставлена. Номер заявки - " + _order.OrderNum + Environment.NewLine);
+
+                                    order = _order;
                                 }
                             }
-                            catch
-                            {
-                                textBoxLogsWindow.AppendText("Ошибка получения номера заявки." + Environment.NewLine);
-                            }
                         }
-                        else
+                        catch (Exception er)
                         {
-                            textBoxLogsWindow.AppendText("Неудачная попытка выставления заявки." + Environment.NewLine);
+                            textBoxLogsWindow.AppendText("Ошибка получения номера заявки. Error: " + er.Message + Environment.NewLine);
                         }
                     }
                     catch
@@ -773,12 +881,12 @@ namespace QuikSharpDemo
                     try
                     {
                         textBoxLogsWindow.AppendText("Получаем таблицу заявок..." + Environment.NewLine);
-                        listOrders = _quik.Orders.GetOrders().Result;
+                        tmplistOrders = _quik.Orders.GetOrders().Result;
 
-                        if (listOrders.Count > 0)
+                        if (tmplistOrders.Count > 0)
                         {
                             textBoxLogsWindow.AppendText("Выводим данные о заявках в таблицу..." + Environment.NewLine);
-                            toolCandlesTable = new FormOutputTable(listOrders);
+                            toolCandlesTable = new FormOutputTable(tmplistOrders);
                             toolCandlesTable.Show();
                         }
                     }
@@ -791,12 +899,12 @@ namespace QuikSharpDemo
                     try
                     {
                         textBoxLogsWindow.AppendText("Получаем таблицу сделок..." + Environment.NewLine);
-                        listTrades = _quik.Trading.GetTrades().Result;
+                        tmplistTrades = _quik.Trading.GetTrades().Result;
 
-                        if (listTrades.Count > 0)
+                        if (tmplistTrades.Count > 0)
                         {
                             textBoxLogsWindow.AppendText("Выводим данные о сделках в таблицу..." + Environment.NewLine);
-                            toolCandlesTable = new FormOutputTable(listTrades);
+                            toolCandlesTable = new FormOutputTable(tmplistTrades);
                             toolCandlesTable.Show();
                         }
                     }
@@ -862,6 +970,15 @@ namespace QuikSharpDemo
             }
         }
 
+        int GetIndexOfTool(string SecCode, string ClassCode)
+        {
+            for(int i = 0; i < tools.Capacity; i++)
+                if(tools[i].SecurityCode == SecCode && tools[i].ClassCode == ClassCode)
+                    return i;
+            return -1;
+
+        }
+
         int GetPositionT2(Quik _quik, Tool instrument, string clientCode)
         {
             // возвращает чистую позицию по инструменту
@@ -875,7 +992,7 @@ namespace QuikSharpDemo
                     FuturesClientHolding q1 = _quik.Trading.GetFuturesHolding(instrument.FirmID, instrument.AccountID, instrument.SecurityCode, 0).Result;
                     if (q1 != null) qty = Convert.ToInt32(q1.totalNet);
                 }
-                catch (Exception e) { Console.WriteLine("GetPositionT2: SPBFUT, ошибка - " + e.Message); }
+                catch (Exception e) { textBoxLogsWindow.AppendText("GetPositionT2: SPBFUT, ошибка - " + e.Message + Environment.NewLine); }
             }
             else
             {
@@ -885,7 +1002,10 @@ namespace QuikSharpDemo
                     DepoLimitEx q1 = _quik.Trading.GetDepoEx(instrument.FirmID, clientCode, instrument.SecurityCode, instrument.AccountID, 2).Result;
                     if (q1 != null) qty = Convert.ToInt32(q1.CurrentBalance);
                 }
-                catch (Exception e) { Console.WriteLine("GetPositionT2: ошибка - " + e.Message); }
+                catch (Exception e)
+                {
+                    textBoxLogsWindow.AppendText("GetPositionT2: ошибка - " + e.Message  + Environment.NewLine);
+                }
             }
             return qty;
         }
@@ -911,7 +1031,7 @@ namespace QuikSharpDemo
                 }
                 catch
                 {
-                    Console.WriteLine("Неудачная попытка отправки заявки");
+                    textBoxLogsWindow.AppendText("Неудачная попытка отправки заявки" + Environment.NewLine);
                 }
             }
             return res;
@@ -924,37 +1044,59 @@ namespace QuikSharpDemo
             textBoxSecCode.Text = secCode;
         }
 
-        private void textBoxShortName_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label14_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void labelQty_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void comboBoxMode_SelectedIndexChanged(object sender, EventArgs e)
         {
             settings.RobotMode = comboBoxMode.SelectedItem.ToString();
         }
 
-        private void buttonPositionReset_Click(object sender, EventArgs e)
+        private void buttonKillOrder_Click(object sender, EventArgs e)
         {
-            if(positions[secCodeindex] != null)
+
+            if (positions[secCodeindex] != null)
             {
-                if (positions[secCodeindex].State != State.Completed)
+                if (positions[secCodeindex].entranceOrderNumber != 0)
                 {
-                    //
+                    if (positions[secCodeindex].State != State.Completed)
+                    {
+                        Order order = new Order();
+                        order.ClassCode = tools[secCodeindex].ClassCode;
+                        order.SecCode = tools[secCodeindex].SecurityCode;
+                        order.OrderNum = positions[secCodeindex].entranceOrderNumber;
+
+                        positions[secCodeindex].State = State.Canceling;
+                        long x = _quik.Orders.KillOrder(order).Result;
+                        
+                        //positions[secCodeindex].entranceOrderID = x;
+
+                        // positions[secCodeindex].State = State.Canceled;
+                        textBoxLogsWindow.AppendText("Результат - " + x + " ..." + Environment.NewLine);
+                     
+                    }
                 }
             }
-            
-               
+            else
+            {
+                textBoxLogsWindow.AppendText("Невозможно снять заявку. Заявка не существует." + Environment.NewLine);
+            }
+        }
+
+        private void buttonPositionReset_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label13_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void FormMain_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void dataGridViewPositions_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
 
         }
     }
