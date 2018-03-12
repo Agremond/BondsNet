@@ -14,9 +14,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.IO;
-using System.Net;
-using System.Xml;
-
 
 
 namespace BondsNet
@@ -34,7 +31,7 @@ namespace BondsNet
        //string[] Securities = { "RU000A0JV3Z4", "RU000A0JV3M2" , "RU000A0JVPR3", "RU000A0JVM81", "RU000A0JV2H4" };
 
         string BCatalog_path = @"bondscatalog.csv";//заменить на Securities
-        string LombardList_url = @"http://www.cbr.ru/analytics/Plugins/LombardList.aspx?xml_ver=true";
+
 
         // string[] Securities = { "RU000A0JTF68" };
 
@@ -80,49 +77,8 @@ namespace BondsNet
         }
         void Init()
         {
-            string ISIN = "";
-            double goalACY = 0;
-            int rank = 3;
-            //загрузка ломбардного списка бумаг
             try
             {
-                string xmlStr;
-                using (var wc = new WebClient())
-                {
-                    wc.Encoding = System.Text.Encoding.UTF8;
-                    xmlStr = wc.DownloadString(LombardList_url);
-                   
-                 
-                }
-                var xmlDoc = new XmlDocument();
-                xmlDoc.LoadXml(xmlStr);
-                textBoxLogsWindow.AppendText("Загружаем ломбардный список облигаций..." + LombardList_url + Environment.NewLine);
-                foreach (XmlNode n_bond in xmlDoc.SelectNodes("/LombardList/Papers/Emitent/Paper"))
-                {
-                    
-                    ISIN = n_bond.Attributes["ISIN"].Value;
-                    goalACY = 0;
-                    rank = 3;
-
-                    if (ISIN.StartsWith("RU"))
-                        Securities.Add(new Security(ISIN, rank, goalACY));
-
-                    
-                }
-
-                textBoxLogsWindow.AppendText("Ломбардный список успешно загружен." + Environment.NewLine);
-
-            }
-            catch (Exception e)
-            {
-                textBoxLogsWindow.AppendText("Ошибка загрузка ломбардного списка облигаций." + Environment.NewLine);
-                textBoxLogsWindow.AppendText(e.Message);
-            }
-
-            //загрузка пользовательского списка бумаг
-            try
-            {
-                textBoxLogsWindow.AppendText("Загружаем пользовательский список облигаций..." + Environment.NewLine);
                 using (StreamReader reader = new StreamReader(BCatalog_path))
                 {//открытие файла для чтения
                     string textline;
@@ -130,18 +86,11 @@ namespace BondsNet
                     {
                         if (textline.Split(':') != null)
                         {
-                            ISIN = textline.Split(':')[0];
-                            goalACY = Convert.ToDouble(textline.Split(':')[1]);
-                            rank = Convert.ToInt32(textline.Split(':')[2]);
+                            string ISIN = textline.Split(':')[0];
+                            string goalACY = textline.Split(':')[1];
+                            string rank = textline.Split(':')[2];
 
-                            int index = Securities.IndexOf(Securities.Where(n => n.SecCode == ISIN).FirstOrDefault());
-                            if( index >= 0)
-                                Securities[index].goalACY = (Securities[index].goalACY > goalACY) ? Securities[index].goalACY : goalACY;
-                            else
-                            {
-                                Securities.Add(new Security(ISIN, rank, goalACY));
-                               
-                            }
+                            Securities.Add(new Security(ISIN, Convert.ToInt32(rank), Convert.ToDouble(goalACY)));
                         }
                            
                         else { MessageBox.Show("Ошибка чтения списка бумаг!"); }
@@ -149,7 +98,6 @@ namespace BondsNet
                     }
 
                 }
-                textBoxLogsWindow.AppendText("Пользовательский список успешно загружен." + Environment.NewLine);
             }
             catch (Exception e)
             {
@@ -157,7 +105,6 @@ namespace BondsNet
                 textBoxLogsWindow.AppendText(e.Message);
 
             }
-            // добавить вывод итогов по каждому типу загрузки
 
             textBoxSecCode.Text = secCode;
         
@@ -257,12 +204,12 @@ namespace BondsNet
             {
                 try
                 {
-
-                    ////пересмотреть!!!!!!!!!!!!!!!!!!!  
+                    
+                  ////пересмотреть!!!!!!!!!!!!!!!!!!!  
                     for (int i = 0; i < Securities.Count; i++)
                     {
                         secCode = Securities[i].SecCode;
-                        //   textBoxLogsWindow.AppendText("Определяем код класса инструмента " + secCode + ", по списку классов" + "..." + Environment.NewLine);
+                     //   textBoxLogsWindow.AppendText("Определяем код класса инструмента " + secCode + ", по списку классов" + "..." + Environment.NewLine);
                         try
                         {
                             classCode = _quik.Class.GetSecurityClass("SPBFUT,TQBR,TQBS,TQNL,TQLV,TQNE,TQOB,EQOB", secCode).Result;
@@ -274,12 +221,12 @@ namespace BondsNet
                         if (classCode != null && classCode != "")
                         {
                             textBoxClassCode.Text = classCode;
-                            //     textBoxLogsWindow.AppendText("Определяем код клиента..." + Environment.NewLine);
+                       //     textBoxLogsWindow.AppendText("Определяем код клиента..." + Environment.NewLine);
                             clientCode = _quik.Class.GetClientCode().Result;
                             textBoxClientCode.Text = clientCode;
-
-
-                            //    textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
+                          
+                            
+                        //    textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
                             tools.Add(new Tool(_quik, Securities[i], classCode, settings.KoefSlip));
                             positions.Add(new Position());
 
@@ -298,17 +245,17 @@ namespace BondsNet
                                     textBoxCoupon.Text = Convert.ToString(GetPositionT2(_quik, tools[i], clientCode));
 
                                 }
-                                //  textBoxLogsWindow.AppendText("Подписываемся на стакан...");
+                              //  textBoxLogsWindow.AppendText("Подписываемся на стакан...");
                                 _quik.OrderBook.Subscribe(tools[i].ClassCode, tools[i].SecurityCode).Wait();
                                 isSubscribedToolOrderBook = _quik.OrderBook.IsSubscribed(tools[i].ClassCode, tools[i].SecurityCode).Result;
 
 
                                 if (isSubscribedToolOrderBook)
                                 {
-                                    //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
+                                //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
 
                                     toolsOrderBook.Add(new OrderBook());
-
+                                   
                                     timerRenewForm.Enabled = true;
                                     started = true;
 
@@ -338,8 +285,9 @@ namespace BondsNet
                             buttonStartStop.Text = "СТОП";
 
                         }
-
+                      
                     }
+
                 }
                 catch
                 {
@@ -470,13 +418,13 @@ namespace BondsNet
                 {
                     //добавить обработку существующих бумаг. 
                     //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
-                
-                    if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].CurrentACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
+
+                    if (tools[i].CurrentACY >= tools[i].GoalACY) // при подходящей доходности отправляем заявку на покупку
                     {
                         if(tools[i].Offer > 0)
                         {
                             priceEntrance  = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
-                            int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
+                            int qtyOrder = Convert.ToInt32(settings.QtyOrder / ((priceEntrance / 100) * tools[i].Value));
 
 
                             EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
@@ -521,9 +469,6 @@ namespace BondsNet
         }
         void Positions2Table()
         {
-            DataRowCollection allRows;
-            DataRow[] searchedRows;
-            int rowIndex = 0;
             int j = 0;
 
             for (int i = 0; i < positions.Count; i++)
@@ -542,16 +487,16 @@ namespace BondsNet
                 }
                 else
                 {
-                    allRows = ((DataTable)dataGridViewPositions.DataSource).Rows;
+                    //allRows = ((DataTable)dataGridViewPositions.DataSource).Rows;
 
-                    searchedRows = ((DataTable)dataGridViewPositions.DataSource).Select(tools[i].SecurityCode);
+                    //searchedRows = ((DataTable)dataGridViewPositions.DataSource).Select(tools[i].SecurityCode);
 
-                    if(searchedRows != null)
-                    {
-                        rowIndex = allRows.IndexOf(searchedRows[0]);
+                    //if(searchedRows != null)
+                    //{
+                    //    rowIndex = allRows.IndexOf(searchedRows[0]);
 
-                        dataGridViewPositions.Rows.RemoveAt(rowIndex);
-                    }
+                    //    dataGridViewPositions.Rows.RemoveAt(rowIndex);
+                    //}
                    
 
                 }
@@ -678,6 +623,29 @@ namespace BondsNet
                 }
             }
            
+
+
+
+            //for (int i = 0; i < positions.Capacity; i++)
+            //{
+            //    corrID = clientCode + "//" + positions[i].entranceOrderID;
+            //    //обрабатываем заявки относящиейся к текущему нструменту
+
+            //    if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+            //    {
+            //        if (order.Capacity == 0 || order.State == State.Completed)
+            //        {
+            //            positions[i].State = State.Completed;//заявка выполнена
+            //        }
+            //        else
+            //        {
+            //            if(order.Flags.HasFlag(OrderTradeFlags.Canceled))
+            //            {
+            //                positions[i].State = State.Canceled;//заявка отменена
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         void OnQuoteDo(OrderBook quote)
@@ -799,7 +767,7 @@ namespace BondsNet
                     try
                     {
                         decimal priceInOrder = Math.Round(tools[secCodeindex].LastPrice - tools[secCodeindex].LastPrice / 20, tools[secCodeindex].PriceAccuracy);
-                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceInOrder / 100) * tools[secCodeindex].Value);
+                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / ((priceInOrder / 100) * tools[secCodeindex].Value));
                         textBoxLogsWindow.AppendText("Выставляем заявку на покупку, по цене:" + priceInOrder + " ..." + Environment.NewLine);
 
                         EntrancePosition(Operation.Buy, priceInOrder, qtyOrder, tools[secCodeindex]);
@@ -833,7 +801,7 @@ namespace BondsNet
                     try
                     {
                         decimal priceInOrder = Math.Round(tools[secCodeindex].LastPrice + tools[secCodeindex].Step * 5, tools[secCodeindex].PriceAccuracy);
-                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceInOrder / 100) * tools[secCodeindex].Value);
+                        int qtyOrder = Convert.ToInt32(settings.QtyOrder / ((priceInOrder / 100) * tools[secCodeindex].Value));
                         textBoxLogsWindow.AppendText("Выставляем заявку на покупку, по цене:" + priceInOrder + " ..." + Environment.NewLine);
 
                         EntrancePosition(Operation.Buy, priceInOrder, qtyOrder, tools[secCodeindex]);
