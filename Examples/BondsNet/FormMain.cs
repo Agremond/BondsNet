@@ -27,7 +27,6 @@ namespace BondsNet
         public static Quik _quik;//экземпляр интерфейса QUIK
         bool isServerConnected = false; //подключен к сервер QUIK
         
-        bool pause = false;//пауза между заявками. временный механизм
         bool started = false;//флаг запуска робота
 
         //Заменить н акласс Securities;
@@ -38,6 +37,8 @@ namespace BondsNet
 
         // string[] Securities = { "RU000A0JTF68" };
 
+        //Глубина расчета индикатора Боллинджера
+        static int BB_DEEP = 3;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -64,11 +65,14 @@ namespace BondsNet
         Settings settings;
 
         //стаканы по инструментам
-        List<OrderBook> toolsOrderBook;
+        List<OrderBook> toolsOrderBook = null;
         //инструменты
-        List<Tool> tools;
+        List<Tool> tools = null;
         //позиции по инструментам
-        List<Position> positions;
+        List<Position> positions = null;
+
+        //Сделки по инструментам
+        List<List <Candle> > candles = null;
 
        
        // FuturesClientHolding futuresPosition;
@@ -83,6 +87,7 @@ namespace BondsNet
             string ISIN = "";
             double goalACY = 0;
             int rank = 3;
+            int bond_count = 0;
             //загрузка ломбардного списка бумаг
             try
             {
@@ -101,13 +106,15 @@ namespace BondsNet
                 {
                     
                     ISIN = n_bond.Attributes["ISIN"].Value;
-                    goalACY = 0;
+                    goalACY = 11;
                     rank = 3;
 
                     if (ISIN.StartsWith("RU"))
                         Securities.Add(new Security(ISIN, rank, goalACY));
-
                     
+                    bond_count++;
+                    if (bond_count >= 199)
+                        break;
                 }
 
                 textBoxLogsWindow.AppendText("Ломбардный список успешно загружен." + Environment.NewLine);
@@ -155,7 +162,7 @@ namespace BondsNet
             {
                 textBoxLogsWindow.AppendText("Ошибка загрузка списка облигаций." + Environment.NewLine);
                 textBoxLogsWindow.AppendText(e.Message);
-
+                return;
             }
             // добавить вывод итогов по каждому типу загрузки
 
@@ -194,6 +201,7 @@ namespace BondsNet
             tools = new List<Tool>(Securities.Count);
             toolsOrderBook = new List<OrderBook>(Securities.Count);
             positions = new List<Position>(Securities.Count);
+            candles = new List<List <Candle>>(Securities.Count);
 
             listTransactionReply = new List<TransactionReply>();
             listOrders = new List<Order>();
@@ -285,7 +293,7 @@ namespace BondsNet
 
                             if (tools[i] != null && tools[i].Name != null && tools[i].Name != "")
                             {
-                                textBoxLogsWindow.AppendText("Инструмент " + tools[i].Name + "  " + tools[i].SecurityCode + " создан." + Environment.NewLine);
+                           //     textBoxLogsWindow.AppendText("Инструмент " + tools[i].Name + "  " + tools[i].SecurityCode + " создан." + Environment.NewLine);
                                 if (secCodeindex == i)
                                 {
                                     textBoxAccountID.Text = tools[i].AccountID;
@@ -335,11 +343,16 @@ namespace BondsNet
                                 textBoxLogsWindow.AppendText("Инструмент не создан." + Environment.NewLine);
                             }
 
-                            buttonStartStop.Text = "СТОП";
+                           
 
+                        }
+                        else
+                        {
+                            textBoxLogsWindow.AppendText("не удалось определить класс инструмента " + secCode  + Environment.NewLine);
                         }
 
                     }
+                    buttonStartStop.Text = "СТОП";
                 }
                 catch
                 {
@@ -356,9 +369,10 @@ namespace BondsNet
         }
         void Run()
         {
-            if (tools != null)//если tools существует, обрабатываем
+            if (tools != null )//если tools существует, обрабатываем
             {
-                CalcBestOffer();//рассчиать лучшее предложение
+                GetTradesHistory();
+                GetBestOffer();//рассчитать лучшее предложение
                 CalcIndicators();
                 CheckConditionEntrance();
                 Positions2Table();
@@ -402,7 +416,41 @@ namespace BondsNet
 
         }
 
-        void CalcBestOffer()//реализовать non-void с возвращением ошибки
+        /// <summary>
+        /// Функция загрузки истории последних N сделок.
+        /// </summary>
+        void GetTradesHistory()
+        {
+            bool isSubscribedToolCandles = false;
+            textBoxLogsWindow.AppendText("Получение истории торгов" + Environment.NewLine);
+            
+            foreach (Tool tool in tools)
+            {
+                try
+                {
+                    _quik.Candles.Subscribe(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Wait();
+                    isSubscribedToolCandles = _quik.Candles.IsSubscribed(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Result;
+                    if (isSubscribedToolCandles)
+                    {
+                        candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                    }
+                    else
+                    {
+                        textBoxLogsWindow.AppendText("Не удалось получить историю торгов " + tool.SecurityCode + Environment.NewLine);
+
+                    }
+                }
+                catch (Exception er)
+                {
+                    textBoxLogsWindow.AppendText("Ошибка получения истории торгов. Error: " + er.Message + Environment.NewLine);
+                }
+                
+            }
+
+
+        }
+
+        void GetBestOffer()//реализовать non-void с возвращением ошибки
         {
            
             if (toolsOrderBook != null)
@@ -471,7 +519,7 @@ namespace BondsNet
                     //добавить обработку существующих бумаг. 
                     //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
                 
-                    if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].CurrentACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
+                    if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
                     {
                         if(tools[i].Offer > 0)
                         {
@@ -506,7 +554,7 @@ namespace BondsNet
                     positions[i].entranceOrderID = NewOrder(_quik, tool, operation, price, positions[i].entranceOrderQty);
                     if (positions[i].entranceOrderID != 0)
                     {
-                        pause = true;
+                        
                         textBoxLogsWindow.AppendText("ID заявки - " + positions[i].entranceOrderID + Environment.NewLine);
                     }
                 }
@@ -521,9 +569,7 @@ namespace BondsNet
         }
         void Positions2Table()
         {
-            DataRowCollection allRows;
-            DataRow[] searchedRows;
-            int rowIndex = 0;
+
             int j = 0;
 
             for (int i = 0; i < positions.Count; i++)
@@ -542,16 +588,16 @@ namespace BondsNet
                 }
                 else
                 {
-                    allRows = ((DataTable)dataGridViewPositions.DataSource).Rows;
+                    //allRows = ((DataTable)dataGridViewPositions.DataSource).Rows;
 
-                    searchedRows = ((DataTable)dataGridViewPositions.DataSource).Select(tools[i].SecurityCode);
+                    //searchedRows = ((DataTable)dataGridViewPositions.DataSource).Select(tools[i].SecurityCode);
 
-                    if(searchedRows != null)
-                    {
-                        rowIndex = allRows.IndexOf(searchedRows[0]);
+                    //if(searchedRows != null)
+                    //{
+                    //    rowIndex = allRows.IndexOf(searchedRows[0]);
 
-                        dataGridViewPositions.Rows.RemoveAt(rowIndex);
-                    }
+                    //    dataGridViewPositions.Rows.RemoveAt(rowIndex);
+                    //}
                    
 
                 }
@@ -774,6 +820,7 @@ namespace BondsNet
                         secCodeindex = listBoxSecCode.SelectedIndex;
                        
                         textBoxLogsWindow.AppendText("Подписываемся на получение исторических данных..." + Environment.NewLine);
+
                         _quik.Candles.Subscribe(tools[secCodeindex].ClassCode, tools[secCodeindex].SecurityCode, CandleInterval.H1).Wait();
                         textBoxLogsWindow.AppendText("Проверяем состояние подписки..." + Environment.NewLine);
                         isSubscribedToolCandles = _quik.Candles.IsSubscribed(tools[secCodeindex].ClassCode, tools[secCodeindex].SecurityCode, CandleInterval.H1).Result;
@@ -781,6 +828,9 @@ namespace BondsNet
                         {
                             textBoxLogsWindow.AppendText("Получаем исторические данные..." + Environment.NewLine);
                             toolCandles = _quik.Candles.GetAllCandles(tools[secCodeindex].ClassCode, tools[secCodeindex].SecurityCode, CandleInterval.H1).Result;
+                            
+                            //toolCandles = _quik.Candles.GetLastCandles(tools[secCodeindex].ClassCode, tools[secCodeindex].SecurityCode, CandleInterval.H1).Result;
+
                             textBoxLogsWindow.AppendText("Выводим исторические данные в таблицу..." + Environment.NewLine);
                             toolCandlesTable = new FormOutputTable(toolCandles);
                             toolCandlesTable.Show();
@@ -1007,7 +1057,7 @@ namespace BondsNet
 
         int GetIndexOfTool(string SecCode, string ClassCode)
         {
-            for(int i = 0; i < tools.Capacity; i++)
+            for(int i = 0; i < tools.Count; i++)
                 if(tools[i].SecurityCode == SecCode && tools[i].ClassCode == ClassCode)
                     return i;
             return -1;
