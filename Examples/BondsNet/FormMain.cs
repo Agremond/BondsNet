@@ -38,7 +38,7 @@ namespace BondsNet
         // string[] Securities = { "RU000A0JTF68" };
 
         //Глубина расчета индикатора Боллинджера
-        static int BB_DEEP = 3;
+        static int BB_DEEP = 1;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -84,87 +84,7 @@ namespace BondsNet
         }
         void Init()
         {
-            string ISIN = "";
-            double goalACY = 0;
-            int rank = 3;
-            int bond_count = 0;
-            //загрузка ломбардного списка бумаг
-            try
-            {
-                string xmlStr;
-                using (var wc = new WebClient())
-                {
-                    wc.Encoding = System.Text.Encoding.UTF8;
-                    xmlStr = wc.DownloadString(LombardList_url);
-                   
-                 
-                }
-                var xmlDoc = new XmlDocument();
-                xmlDoc.LoadXml(xmlStr);
-                textBoxLogsWindow.AppendText("Загружаем ломбардный список облигаций..." + LombardList_url + Environment.NewLine);
-                foreach (XmlNode n_bond in xmlDoc.SelectNodes("/LombardList/Papers/Emitent/Paper"))
-                {
-                    
-                    ISIN = n_bond.Attributes["ISIN"].Value;
-                    goalACY = 11;
-                    rank = 3;
 
-                    if (ISIN.StartsWith("RU"))
-                        Securities.Add(new Security(ISIN, rank, goalACY));
-                    
-                    bond_count++;
-                    if (bond_count >= 199)
-                        break;
-                }
-
-                textBoxLogsWindow.AppendText("Ломбардный список успешно загружен." + Environment.NewLine);
-
-            }
-            catch (Exception e)
-            {
-                textBoxLogsWindow.AppendText("Ошибка загрузка ломбардного списка облигаций." + Environment.NewLine);
-                textBoxLogsWindow.AppendText(e.Message);
-            }
-
-            //загрузка пользовательского списка бумаг
-            try
-            {
-                textBoxLogsWindow.AppendText("Загружаем пользовательский список облигаций..." + Environment.NewLine);
-                using (StreamReader reader = new StreamReader(BCatalog_path))
-                {//открытие файла для чтения
-                    string textline;
-                    while ((textline = reader.ReadLine()) != null)
-                    {
-                        if (textline.Split(':') != null)
-                        {
-                            ISIN = textline.Split(':')[0];
-                            goalACY = Convert.ToDouble(textline.Split(':')[1]);
-                            rank = Convert.ToInt32(textline.Split(':')[2]);
-
-                            int index = Securities.IndexOf(Securities.Where(n => n.SecCode == ISIN).FirstOrDefault());
-                            if( index >= 0)
-                                Securities[index].goalACY = (Securities[index].goalACY > goalACY) ? Securities[index].goalACY : goalACY;
-                            else
-                            {
-                                Securities.Add(new Security(ISIN, rank, goalACY));
-                               
-                            }
-                        }
-                           
-                        else { MessageBox.Show("Ошибка чтения списка бумаг!"); }
-
-                    }
-
-                }
-                textBoxLogsWindow.AppendText("Пользовательский список успешно загружен." + Environment.NewLine);
-            }
-            catch (Exception e)
-            {
-                textBoxLogsWindow.AppendText("Ошибка загрузка списка облигаций." + Environment.NewLine);
-                textBoxLogsWindow.AppendText(e.Message);
-                return;
-            }
-            // добавить вывод итогов по каждому типу загрузки
 
             textBoxSecCode.Text = secCode;
         
@@ -189,19 +109,18 @@ namespace BondsNet
             
             textBoxQty.Text = settings.QtyOrder.ToString();
             textBoxSlip.Text = settings.KoefSlip.ToString();
-            secCode = Securities[0].SecCode;
-            for( int i = 0; i < Securities.Count; i++)
-            {
-                listBoxSecCode.Items.Add(Securities[i].SecCode);
-               
-                dataGridViewPositions.Rows.Add();
-            }
-            listBoxSecCode.SelectedIndex = 0;
+          
+            
 
-            tools = new List<Tool>(Securities.Count);
-            toolsOrderBook = new List<OrderBook>(Securities.Count);
-            positions = new List<Position>(Securities.Count);
-            candles = new List<List <Candle>>(Securities.Count);
+            //tools = new List<Tool>(Securities.Count);
+            //toolsOrderBook = new List<OrderBook>(Securities.Count);
+            //positions = new List<Position>(Securities.Count);
+            //candles = new List<List <Candle>>(Securities.Count);
+
+            tools = new List<Tool>();
+            toolsOrderBook = new List<OrderBook>();
+            positions = new List<Position>();
+            candles = new List<List <Candle>>();
 
             listTransactionReply = new List<TransactionReply>();
             listOrders = new List<Order>();
@@ -263,13 +182,100 @@ namespace BondsNet
             }
             else
             {
+                string ISIN = "";
+                double goalACY = 0;
+                int rank = 3;
+               // int bond_count = 0;
+                //загрузка ломбардного списка бумаг
+                try
+                {
+                    string xmlStr;
+                    using (var wc = new WebClient())
+                    {
+                        wc.Encoding = System.Text.Encoding.UTF8;
+                        xmlStr = wc.DownloadString(LombardList_url);
+
+
+                    }
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(xmlStr);
+                    textBoxLogsWindow.AppendText("Загружаем ломбардный список облигаций..." + LombardList_url + Environment.NewLine);
+                    foreach (XmlNode n_bond in xmlDoc.SelectNodes("/LombardList/Papers/Emitent/Paper"))
+                    {
+
+                        ISIN = n_bond.Attributes["ISIN"].Value;
+                        goalACY = 15;
+                        rank = 3;
+
+                        if (ISIN.StartsWith("RU"))
+                            Securities.Add(new Security(ISIN, rank, goalACY));
+
+                        //bond_count++;
+                        //if (bond_count >= 199)
+                        //    break;
+                    }
+
+                    textBoxLogsWindow.AppendText("Ломбардный список успешно загружен." + Environment.NewLine);
+
+                }
+                catch (Exception e1)
+                {
+                    textBoxLogsWindow.AppendText("Ошибка загрузка ломбардного списка облигаций." + Environment.NewLine);
+                    textBoxLogsWindow.AppendText(e1.Message);
+                }
+
+                //загрузка пользовательского списка бумаг
+                try
+                {
+                    textBoxLogsWindow.AppendText("Загружаем пользовательский список облигаций..." + Environment.NewLine);
+                    using (StreamReader reader = new StreamReader(BCatalog_path))
+                    {//открытие файла для чтения
+                        string textline;
+                        while ((textline = reader.ReadLine()) != null)
+                        {
+                            if (textline.Split(':') != null)
+                            {
+                                ISIN = textline.Split(':')[0];
+                                goalACY = Convert.ToDouble(textline.Split(':')[1]);
+                                rank = Convert.ToInt32(textline.Split(':')[2]);
+
+                                int index = Securities.IndexOf(Securities.Where(n => n.SecCode == ISIN).FirstOrDefault());
+                                if (index >= 0)
+                                    Securities[index].goalACY = (Securities[index].goalACY > goalACY) ? Securities[index].goalACY : goalACY;
+                                else
+                                {
+                                    Securities.Add(new Security(ISIN, rank, goalACY));
+
+                                }
+                            }
+
+                            else { MessageBox.Show("Ошибка чтения списка бумаг!"); }
+
+                        }
+
+                    }
+                    textBoxLogsWindow.AppendText("Пользовательский список успешно загружен." + Environment.NewLine);
+                }
+                catch (Exception e2)
+                {
+                    textBoxLogsWindow.AppendText("Ошибка загрузка списка облигаций." + Environment.NewLine);
+                    textBoxLogsWindow.AppendText(e2.Message);
+                    return;
+                }
+                secCode = Securities[0].SecCode;
+
+
+                // добавить вывод итогов по каждому типу загрузки
+                
                 try
                 {
 
                     ////пересмотреть!!!!!!!!!!!!!!!!!!!  
-                    for (int i = 0; i < Securities.Count; i++)
-                    {
-                        secCode = Securities[i].SecCode;
+                    int i = 0;
+                   // for (int i = 0; i < Securities.Count; i++)
+                   foreach(Security security in Securities)
+                   {
+                        secCode = security.SecCode;
                         //   textBoxLogsWindow.AppendText("Определяем код класса инструмента " + secCode + ", по списку классов" + "..." + Environment.NewLine);
                         try
                         {
@@ -287,63 +293,11 @@ namespace BondsNet
                             textBoxClientCode.Text = clientCode;
 
 
-                            //    textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
-                            tools.Add(new Tool(_quik, Securities[i], classCode, settings.KoefSlip));
+                            //      textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
+                            tools.Add(new Tool(_quik, security, classCode, settings.KoefSlip));
                             positions.Add(new Position());
 
-                            if (tools[i] != null && tools[i].Name != null && tools[i].Name != "")
-                            {
-                           //     textBoxLogsWindow.AppendText("Инструмент " + tools[i].Name + "  " + tools[i].SecurityCode + " создан." + Environment.NewLine);
-                                if (secCodeindex == i)
-                                {
-                                    textBoxAccountID.Text = tools[i].AccountID;
-                                    textBoxFirmID.Text = tools[i].FirmID;
-                                    textBoxShortName.Text = tools[i].Name;
-                                    textBoxLot.Text = Convert.ToString(tools[i].Lot);
-                                    textBoxStep.Text = Convert.ToString(tools[i].Step);
-                                    textBoxValue.Text = Convert.ToString(tools[i].GuaranteeProviding);
-                                    textBoxLastPrice.Text = Convert.ToString(tools[i].LastPrice);
-                                    textBoxCoupon.Text = Convert.ToString(GetPositionT2(_quik, tools[i], clientCode));
-
-                                }
-                                //  textBoxLogsWindow.AppendText("Подписываемся на стакан...");
-                                _quik.OrderBook.Subscribe(tools[i].ClassCode, tools[i].SecurityCode).Wait();
-                                isSubscribedToolOrderBook = _quik.OrderBook.IsSubscribed(tools[i].ClassCode, tools[i].SecurityCode).Result;
-
-
-                                if (isSubscribedToolOrderBook)
-                                {
-                                    //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
-
-                                    toolsOrderBook.Add(new OrderBook());
-
-                                    timerRenewForm.Enabled = true;
-                                    started = true;
-
-                                    listBoxCommands.SelectedIndex = 0;
-                                    listBoxCommands.Enabled = true;
-                                    buttonCommandRun.Enabled = true;
-                                }
-                                else
-                                {
-                                    textBoxLogsWindow.AppendText("Подписка на стакан не удалась." + Environment.NewLine);
-                                    textBoxBestBid.Text = "-";
-                                    textBoxBestOffer.Text = "-";
-                                    timerRenewForm.Enabled = false;
-                                    listBoxCommands.Enabled = false;
-                                    buttonCommandRun.Enabled = false;
-                                }
-
-
-                                //textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnFuturesClientHolding'..." + Environment.NewLine);
-                                //_quik.Events.OnFuturesClientHolding += OnFuturesClientHoldingDo;
-                            }
-                            else
-                            {
-                                textBoxLogsWindow.AppendText("Инструмент не создан." + Environment.NewLine);
-                            }
-
-                           
+                            i++;
 
                         }
                         else
@@ -352,12 +306,67 @@ namespace BondsNet
                         }
 
                     }
-                    buttonStartStop.Text = "СТОП";
+                    
                 }
                 catch
                 {
                     textBoxLogsWindow.AppendText("Ошибка получения данных по инструменту." + Environment.NewLine);
                 }
+
+                //отсортировать список инструментов по купону по убыванию
+                tools.Sort((x, y) => y.CouponPercent.CompareTo(x.CouponPercent));
+
+                //оставить первые 200 бумаг. Соблюдаем ограничение quik на число открытых подписок
+                if (tools.Count > 200)
+                    tools.RemoveRange(199, tools.Count - 200);
+
+                foreach (Tool tool in tools)
+                {
+                    //      подписываемся на стакан
+                    if (tool != null && tool.Name != null && tool.Name != "")
+                    {
+
+
+                        //  textBoxLogsWindow.AppendText("Подписываемся на стакан...");
+                        _quik.OrderBook.Subscribe(tool.ClassCode, tool.SecurityCode).Wait();
+
+                        isSubscribedToolOrderBook = _quik.OrderBook.IsSubscribed(tool.ClassCode, tool.SecurityCode).Result;
+
+
+                        if (isSubscribedToolOrderBook)
+                        {
+                            //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
+
+                            toolsOrderBook.Add(new OrderBook());
+
+                            timerRenewForm.Enabled = true;
+                            started = true;
+                            buttonStartStop.Text = "СТОП";
+                            listBoxCommands.SelectedIndex = 0;
+                            listBoxCommands.Enabled = true;
+                            buttonCommandRun.Enabled = true;
+                        }
+                        else
+                        {
+                            textBoxLogsWindow.AppendText("Подписка на стакан не удалась." + Environment.NewLine);
+                            textBoxBestBid.Text = "-";
+                            textBoxBestOffer.Text = "-";
+                            timerRenewForm.Enabled = false;
+                            listBoxCommands.Enabled = false;
+                            buttonCommandRun.Enabled = false;
+                        }
+
+
+                        //textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnFuturesClientHolding'..." + Environment.NewLine);
+                        //_quik.Events.OnFuturesClientHolding += OnFuturesClientHoldingDo;
+                    }
+                    else
+                    {
+                        textBoxLogsWindow.AppendText("Инструмент не создан." + Environment.NewLine);
+                    }
+
+                }
+
                 textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnQuote', 'OnTransReplay', 'OnTrade', 'Onorder'..." + Environment.NewLine);
 
                 _quik.Events.OnQuote += OnQuoteDo;
@@ -365,13 +374,23 @@ namespace BondsNet
                 _quik.Events.OnTransReply += OnTransReplyDo;
                 _quik.Events.OnOrder += OnOrderDo;
 
+
+                // идее нужно выводить только активные инструменты из tools
+                foreach(Tool tool in tools)
+                {
+                    listBoxSecCode.Items.Add(tool.SecurityCode);
+
+                    dataGridViewPositions.Rows.Add();
+                }
+                listBoxSecCode.SelectedIndex = 0;
             }
         }
         void Run()
         {
             if (tools != null )//если tools существует, обрабатываем
             {
-                GetTradesHistory();
+                
+               // GetTradesHistory();
                 GetBestOffer();//рассчитать лучшее предложение
                 CalcIndicators();
                 CheckConditionEntrance();
@@ -755,7 +774,7 @@ namespace BondsNet
             textBoxGoalACY.Text = Convert.ToString(tools[secCodeindex].GoalACY);
 
             textBoxLastPrice.Text = Convert.ToString(tools[secCodeindex].LastPrice);
-            textBoxCoupon.Text = Convert.ToString(tools[secCodeindex].Coupon);
+            textBoxCoupon.Text = Convert.ToString(tools[secCodeindex].CouponPercent);
             textBoxValue.Text = Convert.ToString(tools[secCodeindex].Value);
             textBoxCPeriod.Text = Convert.ToString(tools[secCodeindex].CouponPeriod);
             textBoxRank.Text = Convert.ToString(tools[secCodeindex].Rank);

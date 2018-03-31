@@ -9,12 +9,13 @@ public class Tool
     string name;
     string securityCode;
     string classCode;
-    string clientCode;
+ //   string clientCode;
     string accountID;
     string firmID;
     int lot;
     int priceAccuracy;
     int couponPeiod;
+    double couponPercent;
     double guaranteeProviding;
     double goalACY;
 
@@ -67,9 +68,9 @@ public class Tool
     /// Шаг цены
     /// </summary>
     public decimal Step { get { return step; } }
-   
+
     /// <summary>
-    /// Длительность купона
+    /// Размер купона
     /// </summary>
     public decimal Coupon { get { return coupon; } }
     /// <summary>
@@ -124,18 +125,26 @@ public class Tool
             return lastPrice;
         }
     }
+
     /// <summary>
-    /// Размер купона
+    /// Длительность купона
     /// </summary>
-    public decimal CouponPeriod
-    {
-        get
-        {
-            //couponPeiod = 0;
-            couponPeiod = Convert.ToInt32(Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONPERIOD").Result.ParamValue.Replace('.', separator)));
-            return couponPeiod;
-        }
-    }
+    /// 
+    public decimal CouponPeriod { get { return couponPeiod; } }
+
+    /// <summary>
+    /// Размер купона в %
+    /// </summary>
+    public double CouponPercent { get { return couponPercent; } }
+    //public decimal CouponPeriod
+    //{
+    //    get
+    //    {
+    //        //couponPeiod = 0;
+    //        couponPeiod = Convert.ToInt32(Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONPERIOD").Result.ParamValue.Replace('.', separator)));
+    //        return couponPeiod;
+    //    }
+    //}
 
 
 
@@ -178,7 +187,21 @@ public class Tool
                         priceAccuracy = Convert.ToInt32(Convert.ToDouble(quik.Trading.GetParamEx(classCode, securityCode, "SEC_SCALE").Result.ParamValue.Replace('.', separator)));
                         
                         coupon = Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONVALUE").Result.ParamValue.Replace('.', separator));
+                        couponPeiod = Convert.ToInt32(Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONPERIOD").Result.ParamValue.Replace('.', separator)));
+
+                        
+
                         value = Convert.ToInt32(Convert.ToDouble(quik.Trading.GetParamEx(classCode, securityCode, "SEC_FACE_VALUE").Result.ParamValue.Replace('.', separator)));
+                        if (couponPeiod != 0)
+                        {
+                            couponPercent = Convert.ToDouble(Math.Round((coupon * (Math.Round(365 / Convert.ToDecimal(couponPeiod))))/ value,4))*100;
+                        }
+                        else
+                        {
+                            couponPercent = 0;
+                            Console.WriteLine("Tool.GetBaseParam. Ошибка вычисления рамзера купона в процентах." + securityCode);
+
+                        }
                         slip = _koefSlip * step;
 
 
