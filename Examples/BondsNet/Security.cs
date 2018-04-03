@@ -54,6 +54,10 @@ public class Security
         }
         SecCode = sec_code;
         goalACY = GoalACY_;
+
+        ClassCode = "";
+
+
     }
 
     /// <summary>

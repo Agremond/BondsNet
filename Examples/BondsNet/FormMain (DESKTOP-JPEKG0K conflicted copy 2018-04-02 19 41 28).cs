@@ -383,7 +383,6 @@ namespace BondsNet
 
                         dataGridViewRecs.Rows.Add(listDepoLimits.Count);
 
-                        int i = 0;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
                             
@@ -403,13 +402,13 @@ namespace BondsNet
                                 if (sec.ClassCode != "" && sec.ClassCode != null)
                                     portfolioTools.Add(new Tool(_quik, sec, 0));
 
-                                
-                                dataGridViewRecs.Rows[i].Cells["portName"].Value = p_item.SecCode;
-                                dataGridViewRecs.Rows[i].Cells["portQty"].Value = p_item.CurrentBalance;
-                                dataGridViewRecs.Rows[i].Cells["portPrice"].Value = p_item.AweragePositionPrice;
+                                //if (portfolioTools.Last().SecurityCode == p_item.SecCode)
+                                //{
+                                //    dataGridViewRecs.Rows[i].Cells["portName"].Value = p_item.SecCode;
+                                //    dataGridViewRecs.Rows[i].Cells["portQty"].Value = p_item.CurrentBalance;
+                                //    dataGridViewRecs.Rows[i].Cells["portPrice"].Value = p_item.AweragePositionPrice;
 
-                                //just for test
-                                dataGridViewRecs.Rows[i].Cells["portCurrentACY"].Value = portfolioTools.Last().CouponPercent;
+                                //}
 
                             }
                             catch
@@ -418,12 +417,6 @@ namespace BondsNet
 
                             }
 
-                            //    tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
-
-                            //        dataGridViewRecs.Rows[i].Cells["portCurrentACY"].Value = 
-
-
-                            i++;
 
                         }
  
@@ -506,7 +499,7 @@ namespace BondsNet
                     isSubscribedToolCandles = _quik.Candles.IsSubscribed(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Result;
                     if (isSubscribedToolCandles)
                     {
-        //                candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                        candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
                     }
                     else
                     {
@@ -641,6 +634,7 @@ namespace BondsNet
                
             //}
         }
+
         void Positions2Table()
         {
 
@@ -719,9 +713,6 @@ namespace BondsNet
                     positions[i].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
                     
                     
-                    //Обновить состояние портфеля в форме.
-
-
                     //зафиксировать цену покупки для статистики
                     //....
                     ///////////////////////

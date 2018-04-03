@@ -158,10 +158,10 @@ public class Tool
     /// <param name="securityCode">Код инструмента</param>
     /// <param name="classCode">Код класса</param>
     //public Tool(Quik quik, string securityCode_, string _classCode, int koefSlip, Rank _rank)
-    public Tool(Quik quik, Security sec, string securityCode_, int koefSlip)
+    public Tool(Quik quik, Security sec, int koefSlip)
     {
         _quik = quik;
-        GetBaseParam(quik, sec.SecCode, securityCode_, koefSlip);
+        GetBaseParam(quik, sec.SecCode, sec.ClassCode, koefSlip);
         goalACY = sec.goalACY;
         currACY = -999;
         offer = -999;
