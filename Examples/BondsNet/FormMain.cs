@@ -371,7 +371,8 @@ namespace BondsNet
                 listBoxSecCode.SelectedIndex = 0;
 
                // загрузка истории торгов для расчета индикатора Боллинджера
-                GetTradesHistory();
+
+               // GetTradesHistory();
 
                 //Вывести текущий портфель.
                 try
@@ -383,13 +384,14 @@ namespace BondsNet
                     {                    
                         textBoxLogsWindow.AppendText("Выводим данные о портфеле в таблицу..." + Environment.NewLine);
 
-                        dataGridViewRecs.Rows.Add(listDepoLimits.Count);
+                       
 
                         int i = 0;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
                             if (p_item.LimitKind != LimitKind.T0)
                                 continue;
+                            dataGridViewRecs.Rows.Add();
                             Security sec = new Security(p_item.SecCode, 0, 14);
                             try
                             {
@@ -410,9 +412,13 @@ namespace BondsNet
                                 dataGridViewRecs.Rows[i].Cells["portName"].Value = p_item.SecCode;
                                 dataGridViewRecs.Rows[i].Cells["portQty"].Value = p_item.CurrentBalance;
                                 dataGridViewRecs.Rows[i].Cells["portPrice"].Value = p_item.AweragePositionPrice;
-
-                                //just for test
-                                dataGridViewRecs.Rows[i].Cells["portCurrentACY"].Value = portfolioTools.Last().CouponPercent;
+                                dataGridViewRecs.Rows[i].Cells["portCurrentKoupon"].Value = portfolioTools.Last().CouponPercent;
+                                if (GetIndexOfTool(sec.SecCode, sec.ClassCode) == -1)
+                                {
+                                    dataGridViewRecs.Rows[i].DefaultCellStyle.BackColor = Color.LightSkyBlue;
+                                    dataGridViewRecs.Rows[i].DefaultCellStyle.ForeColor = Color.Black;
+                                }
+                                    
 
                             }
                             catch
@@ -509,7 +515,7 @@ namespace BondsNet
                     isSubscribedToolCandles = _quik.Candles.IsSubscribed(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Result;
                     if (isSubscribedToolCandles)
                     {
-        //                candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                        candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
                     }
                     else
                     {

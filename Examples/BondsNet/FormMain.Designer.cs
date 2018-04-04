@@ -119,7 +119,7 @@
             this.portName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portQty = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portPrice = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.portCurrentACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.portCurrentKoupon = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabPage0.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPositions)).BeginInit();
@@ -963,14 +963,14 @@
             this.portName,
             this.portQty,
             this.portPrice,
-            this.portCurrentACY});
+            this.portCurrentKoupon});
             this.dataGridViewRecs.Location = new System.Drawing.Point(6, 6);
             this.dataGridViewRecs.MultiSelect = false;
             this.dataGridViewRecs.Name = "dataGridViewRecs";
             this.dataGridViewRecs.ReadOnly = true;
             this.dataGridViewRecs.RowHeadersVisible = false;
             this.dataGridViewRecs.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
-            this.dataGridViewRecs.Size = new System.Drawing.Size(790, 268);
+            this.dataGridViewRecs.Size = new System.Drawing.Size(978, 513);
             this.dataGridViewRecs.TabIndex = 17;
             // 
             // tabPage2
@@ -1003,11 +1003,11 @@
             this.portPrice.Name = "portPrice";
             this.portPrice.ReadOnly = true;
             // 
-            // portCurrentACY
+            // portCurrentKoupon
             // 
-            this.portCurrentACY.HeaderText = "ТекДоходность";
-            this.portCurrentACY.Name = "portCurrentACY";
-            this.portCurrentACY.ReadOnly = true;
+            this.portCurrentKoupon.HeaderText = "ТекКупон";
+            this.portCurrentKoupon.Name = "portCurrentKoupon";
+            this.portCurrentKoupon.ReadOnly = true;
             // 
             // FormMain
             // 
@@ -1123,7 +1123,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn portName;
         private System.Windows.Forms.DataGridViewTextBoxColumn portQty;
         private System.Windows.Forms.DataGridViewTextBoxColumn portPrice;
-        private System.Windows.Forms.DataGridViewTextBoxColumn portCurrentACY;
+        private System.Windows.Forms.DataGridViewTextBoxColumn portCurrentKoupon;
     }
 }
 
