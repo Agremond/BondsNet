@@ -113,9 +113,11 @@ namespace BondsNet
           
             
             tools = new List<Tool>();
+            portfolioTools = new List<Tool>();
             toolsOrderBook = new List<OrderBook>();
             positions = new List<Position>();
             candles = new List<List <Candle>>();
+
 
             listTransactionReply = new List<TransactionReply>();
             listOrders = new List<Order>();
@@ -386,7 +388,8 @@ namespace BondsNet
                         int i = 0;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
-                            
+                            if (p_item.LimitKind != LimitKind.T0)
+                                continue;
                             Security sec = new Security(p_item.SecCode, 0, 14);
                             try
                             {
