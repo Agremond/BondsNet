@@ -65,6 +65,7 @@
     <Compile Include="FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="Portfolio.cs" />
     <Compile Include="Security.cs" />
     <Compile Include="Position.cs" />
     <Compile Include="Settings.cs" />

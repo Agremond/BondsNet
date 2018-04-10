@@ -19,6 +19,7 @@ using System.Xml;
 
 
 
+
 namespace BondsNet
 {
     public partial class FormMain : Form
@@ -58,6 +59,9 @@ namespace BondsNet
         //список ответов на отправленные транзакци
         List<TransactionReply> listTransactionReply;
 
+        //Рассчитанные значения бумаг в портфеле
+        List<Portfolio> portfolio;
+
         List<DepoLimitEx> listDepoLimits;
         List<PortfolioInfoEx> listPortfolio;
         List<MoneyLimit> listMoneyLimits;
@@ -68,7 +72,8 @@ namespace BondsNet
         List<OrderBook> toolsOrderBook = null;
         //инструменты
         List<Tool> tools = null;
-        List<Tool> portfolioTools = null;
+        //Инструменты портфеля
+        //List<Tool> portfolioTools = null;
         //позиции по инструментам
         List<Position> positions = null;
 
@@ -113,11 +118,11 @@ namespace BondsNet
           
             
             tools = new List<Tool>();
-            portfolioTools = new List<Tool>();
+            //portfolioTools = new List<Tool>();
             toolsOrderBook = new List<OrderBook>();
             positions = new List<Position>();
             candles = new List<List <Candle>>();
-
+            portfolio = new List<Portfolio>();
 
             listTransactionReply = new List<TransactionReply>();
             listOrders = new List<Order>();
@@ -381,7 +386,8 @@ namespace BondsNet
                     listDepoLimits = _quik.Trading.GetDepoLimits().Result;
 
                     if (listDepoLimits.Count > 0)
-                    {                    
+                    {
+                        Tool _tool = null;
                         textBoxLogsWindow.AppendText("Выводим данные о портфеле в таблицу..." + Environment.NewLine);
 
                        
@@ -391,11 +397,11 @@ namespace BondsNet
                         {
                             if (p_item.LimitKind != LimitKind.T0)
                                 continue;
-                            dataGridViewRecs.Rows.Add();
+                            
                             Security sec = new Security(p_item.SecCode, 0, 14);
                             try
                             {
-
+                                
                                 sec.ClassCode = _quik.Class.GetSecurityClass("SPBFUT,TQBR,TQBS,TQNL,TQLV,TQNE,TQOB,EQOB", secCode).Result;
  
                             }
@@ -406,19 +412,18 @@ namespace BondsNet
                             try
                             {
                                 if (sec.ClassCode != "" && sec.ClassCode != null)
-                                    portfolioTools.Add(new Tool(_quik, sec, 0));
-
-                                
-                                dataGridViewRecs.Rows[i].Cells["portName"].Value = p_item.SecCode;
-                                dataGridViewRecs.Rows[i].Cells["portQty"].Value = p_item.CurrentBalance;
-                                dataGridViewRecs.Rows[i].Cells["portPrice"].Value = p_item.AweragePositionPrice;
-                                dataGridViewRecs.Rows[i].Cells["portCurrentKoupon"].Value = portfolioTools.Last().CouponPercent;
-                                if (GetIndexOfTool(sec.SecCode, sec.ClassCode) == -1)
                                 {
-                                    dataGridViewRecs.Rows[i].DefaultCellStyle.BackColor = Color.LightSkyBlue;
-                                    dataGridViewRecs.Rows[i].DefaultCellStyle.ForeColor = Color.Black;
+                                    _tool = new Tool(_quik, sec, 0);
+                                    portfolio.Add(new Portfolio(_tool, p_item));
+
+                                    dataGridViewRecs.Rows.Add(_tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД");
+                                    //int row_id = dataGridViewRecs.Rows.Count - 1;
+                                    //dataGridViewRecs.Rows[i].Cells["portName"].Value = portTool.SecurityCode;
+                                    //dataGridViewRecs.Rows[j].Cells["portQty"].Value = portTool.ToolQty;
+                                    //dataGridViewRecs.Rows[j].Cells["portPrice"].Value = portTool.AwgPosPrice;
+                                    //dataGridViewRecs.Rows[j].Cells["portCurrentKoupon"].Value = portTool.СurrentCoupon;
+
                                 }
-                                    
 
                             }
                             catch
@@ -426,11 +431,6 @@ namespace BondsNet
                                 textBoxLogsWindow.AppendText("Ошибка определения параметров инструмента в портфеле." + Environment.NewLine);
 
                             }
-
-                            //    tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
-
-                            //        dataGridViewRecs.Rows[i].Cells["portCurrentACY"].Value = 
-
 
                             i++;
 
@@ -458,6 +458,7 @@ namespace BondsNet
                 GetBestOffer();//рассчитать лучшее предложение
                 CalcIndicators();
                 CheckConditionEntrance();
+
                 Positions2Table();
             }
                 
@@ -655,6 +656,7 @@ namespace BondsNet
 
             int j = 0;
 
+
             for (int i = 0; i < positions.Count; i++)
             {
                 if(positions[i].entranceOrderQty != 0)
@@ -686,6 +688,38 @@ namespace BondsNet
                 }
                
             }
+
+            j = 0;
+            foreach (Portfolio portTool in portfolio)
+            {
+
+
+                if (GetIndexOfTool(portTool.SecurityCode, portTool.ClassCode) == -1)
+                {
+                    dataGridViewRecs.Rows[j].DefaultCellStyle.BackColor = Color.LightSkyBlue;
+                    dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
+
+                }
+
+                if (portTool.LastPrice > 0 && portTool.AwgPosPrice > 0)
+                {
+
+                    double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.LastPrice) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
+                    dataGridViewRecs.Rows[j].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
+                    if(portTool.СurrentCoupon < sellACY)
+                    {
+                        dataGridViewRecs.Rows[j].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
+                        dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
+                    }
+
+                }
+                else
+                    dataGridViewRecs.Rows[j].Cells["portSellACY"].Value = "НД";
+
+                j++;
+            }
+
+
 
         }
 

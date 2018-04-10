@@ -120,6 +120,7 @@
             this.portQty = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portPrice = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portCurrentKoupon = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.portSellACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabPage0.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPositions)).BeginInit();
@@ -963,7 +964,8 @@
             this.portName,
             this.portQty,
             this.portPrice,
-            this.portCurrentKoupon});
+            this.portCurrentKoupon,
+            this.portSellACY});
             this.dataGridViewRecs.Location = new System.Drawing.Point(6, 6);
             this.dataGridViewRecs.MultiSelect = false;
             this.dataGridViewRecs.Name = "dataGridViewRecs";
@@ -1008,6 +1010,12 @@
             this.portCurrentKoupon.HeaderText = "ТекКупон";
             this.portCurrentKoupon.Name = "portCurrentKoupon";
             this.portCurrentKoupon.ReadOnly = true;
+            // 
+            // portSellACY
+            // 
+            this.portSellACY.HeaderText = "ДохПродТек";
+            this.portSellACY.Name = "portSellACY";
+            this.portSellACY.ReadOnly = true;
             // 
             // FormMain
             // 
@@ -1124,6 +1132,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn portQty;
         private System.Windows.Forms.DataGridViewTextBoxColumn portPrice;
         private System.Windows.Forms.DataGridViewTextBoxColumn portCurrentKoupon;
+        private System.Windows.Forms.DataGridViewTextBoxColumn portSellACY;
     }
 }
 

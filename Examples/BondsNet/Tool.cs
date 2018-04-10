@@ -157,7 +157,6 @@ public class Tool
     /// <param name="_quik"></param>
     /// <param name="securityCode">Код инструмента</param>
     /// <param name="classCode">Код класса</param>
-    //public Tool(Quik quik, string securityCode_, string _classCode, int koefSlip, Rank _rank)
     public Tool(Quik quik, Security sec, int koefSlip)
     {
         _quik = quik;
