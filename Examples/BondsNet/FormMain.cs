@@ -39,7 +39,7 @@ namespace BondsNet
         // string[] Securities = { "RU000A0JTF68" };
 
         //Глубина расчета индикатора Боллинджера
-        static int BB_DEEP = 1;
+        static int BB_DEEP = 2;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -367,8 +367,12 @@ namespace BondsNet
 
                 _quik.Events.OnQuote += OnQuoteDo;
                 _quik.Events.OnTrade += OnTradeDo;
+                
                 _quik.Events.OnTransReply += OnTransReplyDo;
                 _quik.Events.OnOrder += OnOrderDo;
+                //подписаться на событие изменения баланс по бумагам
+                _quik.Events.OnDepoLimit += OnDepoLimitDo;
+                
 
 
   
@@ -377,7 +381,7 @@ namespace BondsNet
 
                // загрузка истории торгов для расчета индикатора Боллинджера
 
-               // GetTradesHistory();
+              //  GetTradesHistory();
 
                 //Вывести текущий портфель.
                 try
@@ -411,36 +415,25 @@ namespace BondsNet
                             }
                             try
                             {
-                                if (sec.ClassCode != "" && sec.ClassCode != null)
+                                if (sec.ClassCode != "" && sec.ClassCode != null && sec.SecCode.Count() > 6)
                                 {
                                     _tool = new Tool(_quik, sec, 0);
                                     portfolio.Add(new Portfolio(_tool, p_item));
 
-                                    dataGridViewRecs.Rows.Add(_tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД");
-                                    //int row_id = dataGridViewRecs.Rows.Count - 1;
-                                    //dataGridViewRecs.Rows[i].Cells["portName"].Value = portTool.SecurityCode;
-                                    //dataGridViewRecs.Rows[j].Cells["portQty"].Value = portTool.ToolQty;
-                                    //dataGridViewRecs.Rows[j].Cells["portPrice"].Value = portTool.AwgPosPrice;
-                                    //dataGridViewRecs.Rows[j].Cells["portCurrentKoupon"].Value = portTool.СurrentCoupon;
-
+                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД", "НД");
                                 }
 
                             }
                             catch
                             {
                                 textBoxLogsWindow.AppendText("Ошибка определения параметров инструмента в портфеле." + Environment.NewLine);
-
                             }
 
                             i++;
-
                         }
- 
                      }
                     else
-                    {
                         textBoxLogsWindow.AppendText("В таблице `Клиентский портфель` отсутствуют записи." + Environment.NewLine);
-                    }
                 }
                 catch
                 {
@@ -451,13 +444,77 @@ namespace BondsNet
         
         void Run()
         {
+            decimal offer = 0;
+            decimal coupon = 0;
+            decimal value = 0;
+            decimal couponPeriod = 0;
+            int index;
+
+            decimal priceEntrance = 0;
+
             if (tools != null )//если tools существует, обрабатываем
             {
-                
               
-                GetBestOffer();//рассчитать лучшее предложение
-                CalcIndicators();
-                CheckConditionEntrance();
+                 GetBestOffer();//рассчитать лучшее предложение
+
+               
+                for (int i = 0; i < tools.Count; i++)
+                {
+                    coupon = tools[i].Coupon;
+                    value = tools[i].Value;
+                    couponPeriod = tools[i].CouponPeriod;
+
+                    #region Рассчет текущей доходности
+                    offer = Convert.ToDecimal(tools[i].Offer);
+
+                    if (value > 0 && offer > 0 && coupon > 0 && couponPeriod > 0)
+                    {
+                        tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
+                        index = portfolio.IndexOf(portfolio.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+                        if(index >= 0 )
+                        {
+                            portfolio[index].CurrACY = tools[i].CurrentACY;
+                            portfolio[index].LastPrice = tools[i].LastPrice;
+                        }
+                       
+                    }
+                    else
+                    {
+                        tools[i].CurrentACY = -999;//dirty hack
+                    }
+                    //добавит рассчет индикатора Боллинджера
+
+                    #endregion
+
+
+                    #region Расчет позиции для входа
+
+                    //отказаться от плоского списка в адресации positions, определять i наверняка
+                    if (positions[i].toolQty == 0 && positions[i].State == State.Waiting)
+                    {
+                        //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
+
+                        if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
+                        {
+                            if (tools[i].Offer > 0)
+                            {
+                                priceEntrance = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
+                                int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
+
+
+                                EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
+                                textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ;//есть позиция по инструменту
+                    }
+                    #endregion
+
+
+                }
 
                 Positions2Table();
             }
@@ -505,6 +562,7 @@ namespace BondsNet
         /// </summary>
         void GetTradesHistory()
         {
+            int i = 0;
             bool isSubscribedToolCandles = false;
             textBoxLogsWindow.AppendText("Получение истории торгов" + Environment.NewLine);
             
@@ -517,6 +575,8 @@ namespace BondsNet
                     if (isSubscribedToolCandles)
                     {
                         candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                        textBoxLogsWindow.AppendText("Загружено: " + i  + Environment.NewLine);
+
                     }
                     else
                     {
@@ -528,6 +588,8 @@ namespace BondsNet
                 {
                     textBoxLogsWindow.AppendText("Ошибка получения истории торгов. Error: " + er.Message + Environment.NewLine);
                 }
+
+                i++;
                 
             }
 
@@ -547,7 +609,6 @@ namespace BondsNet
                             if (toolsOrderBook[i].offer != null)
                             {
                                 tools[i].Offer = toolsOrderBook[i].offer[0].price;
-   
                             }
                         }
                         else
@@ -559,97 +620,31 @@ namespace BondsNet
 
 
         }
-        void CalcIndicators()
-        {
-
-            decimal offer = 0;
-            decimal coupon;
-            decimal value;
-            decimal couponPeriod;
-
-
-            for (int i = 0; i < tools.Count; i++)
-            {
-                coupon = tools[i].Coupon;
-                value = tools[i].Value;
-                couponPeriod = tools[i].CouponPeriod;
-
-
-                offer = Convert.ToDecimal(tools[i].Offer);
-
-                if (value > 0 && offer > 0 && coupon > 0 && couponPeriod > 0)
-                {
-                    tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
-                }
-                else
-                {
-                    tools[i].CurrentACY = -999;//dirty hack
-                }
-
-               //добавит рассчет индикатора Боллинджера
-
-
-            }
-           
-        }
-        void CheckConditionEntrance()
-        {
-            decimal priceEntrance = 0;
-
-            for( int i = 0; i < tools.Count; i++)
-            {
-                if(positions[i].toolQty == 0 && positions[i].State == State.Waiting)
-                {
-                    //добавить обработку существующих бумаг. 
-                    //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
-                
-                    if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
-                    {
-                        if(tools[i].Offer > 0)
-                        {
-                            priceEntrance  = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
-                            int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
-
-
-                            EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
-                            textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
-                        }
-                    }
-                }
-                else
-                {
-                    ;//есть позиция по инструменту
-                }
-            }
-
-        }
+       
         void EntrancePosition(Operation operation, decimal price, int qty, Tool tool)
         {
             int i = tools.IndexOf(tool); ;
-          //  if (!pause)
-          //  {
-                positions[i].priceEntrance = price;
-                positions[i].entranceOrderQty = qty * tool.Lot;
-                positions[i].toolQty = positions[i].entranceOrderQty;
-                positions[i].dateTimeEntrance = DateTime.Now;
 
-                if (settings.RobotMode == "Боевой")
+            positions[i].priceEntrance = price;
+            positions[i].entranceOrderQty = qty * tool.Lot;
+            positions[i].toolQty = positions[i].entranceOrderQty;
+            positions[i].dateTimeEntrance = DateTime.Now;
+
+            if (settings.RobotMode == "Боевой")
+            {
+                positions[i].entranceOrderID = NewOrder(_quik, tool, operation, price, positions[i].entranceOrderQty);
+                if (positions[i].entranceOrderID != 0)
                 {
-                    positions[i].entranceOrderID = NewOrder(_quik, tool, operation, price, positions[i].entranceOrderQty);
-                    if (positions[i].entranceOrderID != 0)
-                    {
                         
-                        textBoxLogsWindow.AppendText("ID заявки - " + positions[i].entranceOrderID + Environment.NewLine);
-                    }
+                    textBoxLogsWindow.AppendText("ID заявки - " + positions[i].entranceOrderID + Environment.NewLine);
                 }
-                else
-                {
-                    textBoxLogsWindow.AppendText("ID заявки - ТЕСТ" + Environment.NewLine);
-                    NewPos2Table(tool, positions[i].toolQty, positions[i].dateTimeEntrance, positions[i].priceEntrance);
-                }
+            }
+            else
+            {
+                textBoxLogsWindow.AppendText("ID заявки - ТЕСТ" + Environment.NewLine);
+                NewPos2Table(tool, positions[i].toolQty, positions[i].dateTimeEntrance, positions[i].priceEntrance);
+            }
 
-               
-            //}
         }
         void Positions2Table()
         {
@@ -711,10 +706,20 @@ namespace BondsNet
                         dataGridViewRecs.Rows[j].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
                         dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
                     }
+                  
 
                 }
                 else
                     dataGridViewRecs.Rows[j].Cells["portSellACY"].Value = "НД";
+
+                //if (portTool.CurrACY > 0)
+                //{
+                //    dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = portTool.CurrACY;
+                //}
+                //else
+                //    dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = "НД";
+                dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = (portTool.CurrACY > 0) ? Convert.ToString(portTool.CurrACY) : "НД";
+                
 
                 j++;
             }
@@ -761,11 +766,7 @@ namespace BondsNet
                 {
                     positions[i].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
                     
-                    
-                    //Обновить состояние портфеля в форме.
-
-
-                    //зафиксировать цену покупки для статистики
+                                       //зафиксировать цену покупки для статистики
                     //....
                     ///////////////////////
 
@@ -859,7 +860,13 @@ namespace BondsNet
             toolsOrderBook[i] = quote;
            
         }
-                
+
+        void OnDepoLimitDo(DepoLimit depolimit)
+        {
+            ; textBoxLogsWindow.AppendText("OnDepoLimit: изменение баланса."+ depolimit.DepoCurrentBalance + Environment.NewLine);
+        }
+
+
 
         void OnFuturesClientHoldingDo(FuturesClientHolding futPos)
         {
@@ -883,7 +890,6 @@ namespace BondsNet
             textBoxCPeriod.Text = Convert.ToString(tools[secCodeindex].CouponPeriod);
             textBoxRank.Text = Convert.ToString(tools[secCodeindex].Rank);
 
-        
             Run();
 
         }

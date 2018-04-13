@@ -117,10 +117,12 @@
             this.dataGridViewRecs = new System.Windows.Forms.DataGridView();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.portName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.portSecCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portQty = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portPrice = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portCurrentKoupon = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portSellACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.portCurrACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabPage0.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPositions)).BeginInit();
@@ -962,10 +964,12 @@
             this.dataGridViewRecs.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridViewRecs.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.portName,
+            this.portSecCode,
             this.portQty,
             this.portPrice,
             this.portCurrentKoupon,
-            this.portSellACY});
+            this.portSellACY,
+            this.portCurrACY});
             this.dataGridViewRecs.Location = new System.Drawing.Point(6, 6);
             this.dataGridViewRecs.MultiSelect = false;
             this.dataGridViewRecs.Name = "dataGridViewRecs";
@@ -992,6 +996,12 @@
             this.portName.ReadOnly = true;
             this.portName.Width = 120;
             // 
+            // portSecCode
+            // 
+            this.portSecCode.HeaderText = "Код";
+            this.portSecCode.Name = "portSecCode";
+            this.portSecCode.ReadOnly = true;
+            // 
             // portQty
             // 
             this.portQty.HeaderText = "Кол-во";
@@ -1016,6 +1026,12 @@
             this.portSellACY.HeaderText = "ДохПродТек";
             this.portSellACY.Name = "portSellACY";
             this.portSellACY.ReadOnly = true;
+            // 
+            // portCurrACY
+            // 
+            this.portCurrACY.HeaderText = "ДохПокТек";
+            this.portCurrACY.Name = "portCurrACY";
+            this.portCurrACY.ReadOnly = true;
             // 
             // FormMain
             // 
@@ -1129,10 +1145,12 @@
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.DataGridView dataGridViewRecs;
         private System.Windows.Forms.DataGridViewTextBoxColumn portName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn portSecCode;
         private System.Windows.Forms.DataGridViewTextBoxColumn portQty;
         private System.Windows.Forms.DataGridViewTextBoxColumn portPrice;
         private System.Windows.Forms.DataGridViewTextBoxColumn portCurrentKoupon;
         private System.Windows.Forms.DataGridViewTextBoxColumn portSellACY;
+        private System.Windows.Forms.DataGridViewTextBoxColumn portCurrACY;
     }
 }
 
