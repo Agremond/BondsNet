@@ -575,6 +575,7 @@ namespace BondsNet
                     if (isSubscribedToolCandles)
                     {
                         candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+
                         textBoxLogsWindow.AppendText("Загружено: " + i  + Environment.NewLine);
 
                     }
