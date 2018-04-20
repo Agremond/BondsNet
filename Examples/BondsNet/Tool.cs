@@ -23,6 +23,7 @@ public class Tool
     decimal slip;
     decimal lastPrice;
     Rank rank;
+    Bollinger _boll;
 
     decimal coupon;
     decimal value;
@@ -76,7 +77,7 @@ public class Tool
     /// <summary>
     /// Требуемая текущая доходность
     /// </summary>
-    public double GoalACY { get { return goalACY; } }
+    public double GoalACY { get { return goalACY; } set { goalACY = value; } }
     /// <summary>
     /// Номинал купона
     /// </summary>
@@ -86,6 +87,10 @@ public class Tool
     /// Рейтинг  бумаги/эммитента
     /// </summary>
     public Rank Rank { get { return rank; } }
+    /// <summary>
+    /// Индикатор Боллинджера
+    /// </summary>
+    public Bollinger Bollinger { get { return _boll; } set { _boll = value; } }
 
     /// ///  /// <summary>
     /// Текущая доходность
@@ -165,6 +170,7 @@ public class Tool
         currACY = -999;
         offer = -999;
         rank = sec.Rank;
+        
     }
 
     void GetBaseParam(Quik quik, string secCode, string _classCode, int _koefSlip)

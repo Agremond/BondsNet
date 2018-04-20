@@ -39,7 +39,7 @@ namespace BondsNet
         // string[] Securities = { "RU000A0JTF68" };
 
         //Глубина расчета индикатора Боллинджера
-        static int BB_DEEP = 2;
+        static int BB_DEEP = 5;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -205,7 +205,7 @@ namespace BondsNet
                     {
 
                         ISIN = n_bond.Attributes["ISIN"].Value;
-                        goalACY = 15;
+                        goalACY = 13;
                         rank = 3;
 
                         if (ISIN.StartsWith("RU"))
@@ -381,7 +381,7 @@ namespace BondsNet
 
                // загрузка истории торгов для расчета индикатора Боллинджера
 
-              //  GetTradesHistory();
+                GetTradesHistory();
 
                 //Вывести текущий портфель.
                 try
@@ -441,13 +441,20 @@ namespace BondsNet
                 }
             }
         }
-        
+
+        double CalcCurrACY(decimal _value, decimal _coupon, decimal _offer, decimal _couponPeriod)
+        {
+            return Convert.ToDouble(Math.Round(((365 / _couponPeriod) * _coupon / _value) / (_offer / 100), 5) * 100);
+
+        }
+
         void Run()
         {
             decimal offer = 0;
             decimal coupon = 0;
             decimal value = 0;
             decimal couponPeriod = 0;
+            double tmpGoalACY = 0;
             int index;
 
             decimal priceEntrance = 0;
@@ -465,33 +472,54 @@ namespace BondsNet
                     couponPeriod = tools[i].CouponPeriod;
 
                     #region Рассчет текущей доходности
-                    offer = Convert.ToDecimal(tools[i].Offer);
+                    
 
-                    if (value > 0 && offer > 0 && coupon > 0 && couponPeriod > 0)
+                    if (value > 0 && coupon > 0 && couponPeriod > 0)
                     {
-                        tools[i].CurrentACY = Convert.ToDouble(Math.Round(((365 / couponPeriod) * coupon / value) / (offer / 100), 5) * 100);
-                        index = portfolio.IndexOf(portfolio.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
-                        if(index >= 0 )
+                        offer = Convert.ToDecimal(tools[i].Offer);
+                        if(offer > 0)
                         {
-                            portfolio[index].CurrACY = tools[i].CurrentACY;
-                            portfolio[index].LastPrice = tools[i].LastPrice;
+                            //Рассчет текущей доходности
+                            tools[i].CurrentACY = CalcCurrACY(value, coupon, offer, couponPeriod);
+
                         }
-                       
+                        if(tools[i].Bollinger != null )
+                        {
+                            offer = Convert.ToDecimal(tools[i].Bollinger.SMA_Low);
+
+                            if (offer > 0)
+                            {
+                                tmpGoalACY = CalcCurrACY(value, coupon, offer, couponPeriod);
+                                if (tmpGoalACY > tools[i].GoalACY)
+                                    tools[i].GoalACY = tmpGoalACY;
+
+                            }
+                        }
+                      
                     }
                     else
                     {
                         tools[i].CurrentACY = -999;//dirty hack
                     }
-                    //добавит рассчет индикатора Боллинджера
+                    
+                    
+                    //выводим статистику для существующих в портфеле бумаг
+                    index = portfolio.IndexOf(portfolio.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
 
+                    if (index >= 0)
+                    {
+
+                        portfolio[index].CurrACY = tools[i].CurrentACY;
+                        portfolio[index].LastPrice = tools[i].LastPrice;
+                    }
                     #endregion
 
+                   
+                        #region Расчет позиции для входа
 
-                    #region Расчет позиции для входа
-
-                    //отказаться от плоского списка в адресации positions, определять i наверняка
-                    if (positions[i].toolQty == 0 && positions[i].State == State.Waiting)
-                    {
+                        //отказаться от плоского списка в адресации positions, определять i наверняка
+                        if (positions[i].toolQty == 0 && positions[i].State == State.Waiting)
+                        {
                         //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
 
                         if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
@@ -562,21 +590,33 @@ namespace BondsNet
         /// </summary>
         void GetTradesHistory()
         {
-            int i = 0;
+            int i = tools.Count;
+            int id = 0;
             bool isSubscribedToolCandles = false;
+            List<double> _values = new List<double>();
             textBoxLogsWindow.AppendText("Получение истории торгов" + Environment.NewLine);
             
             foreach (Tool tool in tools)
             {
+                _values.Clear();
                 try
                 {
                     _quik.Candles.Subscribe(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Wait();
                     isSubscribedToolCandles = _quik.Candles.IsSubscribed(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Result;
                     if (isSubscribedToolCandles)
                     {
-                        candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                        //  candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
+                       List <Candle> candle =  _quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result;
+                       candle.ForEach(c => _values.Add(Convert.ToDouble(c.Close)));
+                       id = tools.IndexOf(tool);
+                        if (id > 0)
+                        {
+                            tools[id].Bollinger = new Bollinger(_values);
+                            
+                        }
+                            
 
-                        textBoxLogsWindow.AppendText("Загружено: " + i  + Environment.NewLine);
+                       textBoxLogsWindow.AppendText("Осталось загрузить: " + i  + Environment.NewLine);
 
                     }
                     else
@@ -589,8 +629,7 @@ namespace BondsNet
                 {
                     textBoxLogsWindow.AppendText("Ошибка получения истории торгов. Error: " + er.Message + Environment.NewLine);
                 }
-
-                i++;
+                i--;
                 
             }
 
@@ -686,11 +725,13 @@ namespace BondsNet
             }
 
             j = 0;
+
+            int id = 0;
             foreach (Portfolio portTool in portfolio)
             {
+                id = Securities.IndexOf(Securities.Where(n => n.SecCode == portTool.SecurityCode).FirstOrDefault());
 
-
-                if (GetIndexOfTool(portTool.SecurityCode, portTool.ClassCode) == -1)
+                if (id < 0)
                 {
                     dataGridViewRecs.Rows[j].DefaultCellStyle.BackColor = Color.LightSkyBlue;
                     dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
