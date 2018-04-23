@@ -397,21 +397,29 @@ namespace BondsNet
                        
 
                         int i = 0;
+                        int id_sec;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
                             if (p_item.LimitKind != LimitKind.T0)
                                 continue;
-                            
+
                             Security sec = new Security(p_item.SecCode, 0, 14);
-                            try
+                            id_sec = Securities.IndexOf(Securities.Where(s => s.SecCode == p_item.SecCode).FirstOrDefault());
+
+                            if (id_sec >= 0)
                             {
-                                
-                                sec.ClassCode = _quik.Class.GetSecurityClass("SPBFUT,TQBR,TQBS,TQNL,TQLV,TQNE,TQOB,EQOB", secCode).Result;
- 
+                                sec.ClassCode = Securities[id_sec].ClassCode;
                             }
-                            catch
+                            else
                             {
-                                textBoxLogsWindow.AppendText("Ошибка определения класса инструмента. Убедитесь, что тикер указан правильно" + Environment.NewLine);
+                                try
+                                {
+                                    sec.ClassCode = _quik.Class.GetSecurityClass("SPBFUT,TQBR,TQBS,TQNL,TQLV,TQNE,TQOB,EQOB", secCode).Result;
+                                }
+                                catch
+                                {
+                                    textBoxLogsWindow.AppendText("Ошибка определения класса инструмента. Убедитесь, что тикер указан правильно" + Environment.NewLine);
+                                }
                             }
                             try
                             {
