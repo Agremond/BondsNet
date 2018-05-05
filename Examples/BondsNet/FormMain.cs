@@ -423,12 +423,12 @@ namespace BondsNet
                             }
                             try
                             {
-                                if (sec.ClassCode != "" && sec.ClassCode != null && sec.SecCode.Count() > 6)
+                                if (sec.ClassCode != "" && sec.ClassCode != null && sec.SecCode.Count() > 6 )
                                 {
                                     _tool = new Tool(_quik, sec, 0);
                                     portfolio.Add(new Portfolio(_tool, p_item));
 
-                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД", "НД");
+                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД", "НД", _tool.days_to_mat);
                                 }
 
                             }
@@ -487,10 +487,13 @@ namespace BondsNet
                         offer = Convert.ToDecimal(tools[i].Offer);
                         if(offer > 0)
                         {
+                            
                             //Рассчет текущей доходности
                             tools[i].CurrentACY = CalcCurrACY(value, coupon, offer, couponPeriod);
 
                         }
+
+                        // Расчет доходности по индикатору Боллинджера(SMA_Low)
                         if(tools[i].Bollinger != null )
                         {
                             offer = Convert.ToDecimal(tools[i].Bollinger.SMA_Low);

@@ -9,6 +9,10 @@ public class Tool
     string name;
     string securityCode;
     string classCode;
+    public string sectype;
+    public int expdate;
+    public int mat_date;
+    public int days_to_mat;
  //   string clientCode;
     string accountID;
     string firmID;
@@ -194,7 +198,9 @@ public class Tool
                         coupon = Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONVALUE").Result.ParamValue.Replace('.', separator));
                         couponPeiod = Convert.ToInt32(Convert.ToDecimal(_quik.Trading.GetParamEx(classCode, securityCode, "COUPONPERIOD").Result.ParamValue.Replace('.', separator)));
 
-                        
+                        sectype = Convert.ToString(quik.Trading.GetParamEx(classCode, securityCode, "SECTYPE").Result.ParamValue.Replace('.', separator));
+                        mat_date = Convert.ToInt32(Convert.ToDecimal(quik.Trading.GetParamEx(classCode, securityCode, "MAT_DATE").Result.ParamValue.Replace('.', separator)));
+                        days_to_mat = Convert.ToInt32(Convert.ToDecimal(quik.Trading.GetParamEx(classCode, securityCode, "DAYS_TO_MAT_DATE").Result.ParamValue.Replace('.', separator)));
 
                         value = Convert.ToInt32(Convert.ToDouble(quik.Trading.GetParamEx(classCode, securityCode, "SEC_FACE_VALUE").Result.ParamValue.Replace('.', separator)));
                         if (couponPeiod != 0)

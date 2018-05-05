@@ -123,6 +123,7 @@
             this.portCurrentKoupon = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portSellACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portCurrACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.portMatDays = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabPage0.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPositions)).BeginInit();
@@ -969,7 +970,8 @@
             this.portPrice,
             this.portCurrentKoupon,
             this.portSellACY,
-            this.portCurrACY});
+            this.portCurrACY,
+            this.portMatDays});
             this.dataGridViewRecs.Location = new System.Drawing.Point(6, 6);
             this.dataGridViewRecs.MultiSelect = false;
             this.dataGridViewRecs.Name = "dataGridViewRecs";
@@ -1032,6 +1034,12 @@
             this.portCurrACY.HeaderText = "ДохПокТек";
             this.portCurrACY.Name = "portCurrACY";
             this.portCurrACY.ReadOnly = true;
+            // 
+            // portMatDays
+            // 
+            this.portMatDays.HeaderText = "ДнейДоПог";
+            this.portMatDays.Name = "portMatDays";
+            this.portMatDays.ReadOnly = true;
             // 
             // FormMain
             // 
@@ -1151,6 +1159,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn portCurrentKoupon;
         private System.Windows.Forms.DataGridViewTextBoxColumn portSellACY;
         private System.Windows.Forms.DataGridViewTextBoxColumn portCurrACY;
+        private System.Windows.Forms.DataGridViewTextBoxColumn portMatDays;
     }
 }
 
