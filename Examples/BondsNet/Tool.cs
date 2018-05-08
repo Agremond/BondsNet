@@ -6,6 +6,7 @@ public class Tool
     Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
 
     Quik _quik;
+    static int DAYS_YEAR = 365;
     string name;
     string securityCode;
     string classCode;
@@ -205,7 +206,7 @@ public class Tool
                         value = Convert.ToInt32(Convert.ToDouble(quik.Trading.GetParamEx(classCode, securityCode, "SEC_FACE_VALUE").Result.ParamValue.Replace('.', separator)));
                         if (couponPeiod != 0)
                         {
-                            couponPercent = Convert.ToDouble(Math.Round((coupon * (Math.Round(365 / Convert.ToDecimal(couponPeiod))))/ value,4))*100;
+                            couponPercent = Convert.ToDouble(Math.Round((coupon * (Math.Round(DAYS_YEAR / Convert.ToDecimal(couponPeiod))))/ value,4))*100;
                         }
                         else
                         {

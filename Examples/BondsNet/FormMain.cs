@@ -26,6 +26,7 @@ namespace BondsNet
     {
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
         public static Quik _quik;//экземпляр интерфейса QUIK
+        
         bool isServerConnected = false; //подключен к сервер QUIK
         
         bool started = false;//флаг запуска робота
@@ -40,6 +41,8 @@ namespace BondsNet
 
         //Глубина расчета индикатора Боллинджера
         static int BB_DEEP = 5;
+        //Длительность года в днях
+        static int DAYS_YEAR = 365;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
@@ -371,7 +374,7 @@ namespace BondsNet
                 _quik.Events.OnTransReply += OnTransReplyDo;
                 _quik.Events.OnOrder += OnOrderDo;
                 //подписаться на событие изменения баланс по бумагам
-                _quik.Events.OnDepoLimit += OnDepoLimitDo;
+               // _quik.Events.OnDepoLimit += OnDepoLimitDo;
                 
 
 
@@ -452,7 +455,7 @@ namespace BondsNet
 
         double CalcCurrACY(decimal _value, decimal _coupon, decimal _offer, decimal _couponPeriod)
         {
-            return Convert.ToDouble(Math.Round(((365 / _couponPeriod) * _coupon / _value) / (_offer / 100), 5) * 100);
+            return Convert.ToDouble(Math.Round(((DAYS_YEAR / _couponPeriod) * _coupon / _value) / (_offer / 100), 5) * 100);
 
         }
 
@@ -487,9 +490,14 @@ namespace BondsNet
                         offer = Convert.ToDecimal(tools[i].Offer);
                         if(offer > 0)
                         {
-                            
-                            //Рассчет текущей доходности
+                            //рассчет текущей доходности
                             tools[i].CurrentACY = CalcCurrACY(value, coupon, offer, couponPeriod);
+                            if (tools[i].days_to_mat < DAYS_YEAR)
+                            {
+                                //если время жизни меньше года, то учитываем дисконт/премию
+                                tools[i].CurrentACY += (100 - Convert.ToDouble(offer)) / 100;
+                            }
+                           
 
                         }
 
@@ -526,7 +534,7 @@ namespace BondsNet
                     #endregion
 
                    
-                        #region Расчет позиции для входа
+                    #region Расчет позиции для входа
 
                         //отказаться от плоского списка в адресации positions, определять i наверняка
                         if (positions[i].toolQty == 0 && positions[i].State == State.Waiting)
