@@ -22,40 +22,40 @@ public class Portfolio
     /// <summary>
     /// Краткое наименование инструмента (бумаги)
     /// </summary>
-    public string Name { get { return name; } set { name = Name; } }
+    public string Name { get { return name; } set { name = value; } }
     /// <summary>
     /// Цена последней сделки
     /// </summary>
-    public decimal LastPrice { get { return lastPrice; } set { lastPrice = LastPrice; } }
+    public decimal LastPrice { get { return lastPrice; } set { lastPrice = value; } }
     /// <summary>
     /// Код инструмента (бумаги)
     /// </summary>
-    public string SecurityCode { get { return securityCode; } set { securityCode = SecurityCode; } }
+    public string SecurityCode { get { return securityCode; } set { securityCode = value; } }
     /// <summary>
     /// Класс инструмента (бумаги)
     /// </summary>
-    public string ClassCode { get { return classCode; } set { classCode = ClassCode; } }
+    public string ClassCode { get { return classCode; } set { classCode = value; } }
     /// <summary>
     /// Кол-во ценных бумаг в портфеле
     /// </summary>
-    public long ToolQty { get { return toolQty; } set { toolQty = ToolQty; } }
+    public long ToolQty { get { return toolQty; } set { toolQty = value; } }
     /// <summary>
     /// Средняя цена покупки
     /// </summary>
-    public double AwgPosPrice { get { return AweragePositionPrice; } set { AweragePositionPrice = AwgPosPrice; } }
+    public double AwgPosPrice { get { return AweragePositionPrice; } set { AweragePositionPrice = value; } }
 
     /// <summary>
     /// Текущий купон
     /// </summary>
-    public double СurrentCoupon { get { return currentCoupon; } set { currentCoupon = СurrentCoupon; } }
+    public double СurrentCoupon { get { return currentCoupon; } set { currentCoupon = value; } }
     /// <summary>
     /// Дохожность продажи. Если меньше купона, то бумага с дисконтом, если больше, то с премией.
     /// </summary>
-    public double SellACY { get { return sellACY; } set { sellACY = SellACY; } }
+    public double SellACY { get { return sellACY; } set { sellACY = value; } }
     /// <summary>
     /// Текущая дохождность покупки.
     /// </summary>
-    public double CurrACY { get { return currACY; } set { currACY = CurrACY; } }
+    public double CurrACY { get { return currACY; } set { currACY = value; } }
 
     #endregion
 

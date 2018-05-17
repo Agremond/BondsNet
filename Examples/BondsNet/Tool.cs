@@ -6,7 +6,7 @@ public class Tool
     Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
 
     Quik _quik;
-    static int DAYS_YEAR = 365;
+    const int DAYS_YEAR = 365;
     string name;
     string securityCode;
     string classCode;

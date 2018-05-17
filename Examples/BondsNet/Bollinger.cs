@@ -9,7 +9,7 @@ public class Bollinger
     double smaHigh;
     double smaLow;
     double smaMed;
-    List<double> _values;
+    Queue<double> _values;
     int Dshift;
 
     #region Свойства
@@ -29,7 +29,7 @@ public class Bollinger
     /// <summary>
     /// Значения цены закрытия последних N сделок
     /// </summary>
-    public List<double> Values
+    public Queue<double> Values
     {
         get { return _values; }
         set
@@ -42,7 +42,7 @@ public class Bollinger
     #endregion
 
 
-    private double getStandardDeviation(List<double> doubleList)
+    private double getStandardDeviation(Queue<double> doubleList)
     {
         if (doubleList != null)
         {
@@ -77,9 +77,10 @@ public class Bollinger
             smaMed = smaHigh = smaLow = 0;
         }
     }
-    public Bollinger(List<double> values)
+    public Bollinger(Queue<double> values)
     {
         _values = values;
+        
         smaHigh = 0;
         smaLow = 0;
         smaMed = 0;

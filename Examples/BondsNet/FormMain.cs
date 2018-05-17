@@ -26,12 +26,12 @@ namespace BondsNet
     {
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
         public static Quik _quik;//экземпляр интерфейса QUIK
-        
+        const int BONDS_LIMIT = 10;
         bool isServerConnected = false; //подключен к сервер QUIK
         
         bool started = false;//флаг запуска робота
 
-        //Заменить н акласс Securities;
+        //Заменить на класс Securities;
        //string[] Securities = { "RU000A0JV3Z4", "RU000A0JV3M2" , "RU000A0JVPR3", "RU000A0JVM81", "RU000A0JV2H4" };
 
         string BCatalog_path = @"bondscatalog.csv";//заменить на Securities
@@ -40,7 +40,7 @@ namespace BondsNet
         // string[] Securities = { "RU000A0JTF68" };
 
         //Глубина расчета индикатора Боллинджера
-        static int BB_DEEP = 5;
+        const int BB_DEEP = 5;
         //Длительность года в днях
         static int DAYS_YEAR = 365;
         //текущий выбранный инструмент в форме
@@ -83,8 +83,10 @@ namespace BondsNet
         //Сделки по инструментам
         List<List <Candle> > candles = null;
 
-       
-       // FuturesClientHolding futuresPosition;
+        DataGridViewRow row;
+
+
+        // FuturesClientHolding futuresPosition;
 
         public FormMain()
         {
@@ -294,7 +296,6 @@ namespace BondsNet
                             
                             //      textBoxLogsWindow.AppendText("Создаем экземпляр инструмента " + secCode + "|" + classCode + "..." + Environment.NewLine);
                             tools.Add(new Tool(_quik, security, settings.KoefSlip));
-                            positions.Add(new Position());
 
                             i++;
 
@@ -315,9 +316,9 @@ namespace BondsNet
                 //отсортировать список инструментов по купону по убыванию
                 tools.Sort((x, y) => y.CouponPercent.CompareTo(x.CouponPercent));
 
-                //оставить первые 200 бумаг. Соблюдаем ограничение quik на число открытых подписок
-                if (tools.Count > 200)
-                    tools.RemoveRange(199, tools.Count - 200);
+                //оставить первые BONDS_LIMIT бумаг. Соблюдаем ограничение quik на число открытых подписок(200)
+                if (tools.Count > BONDS_LIMIT)
+                    tools.RemoveRange(BONDS_LIMIT-1, tools.Count - BONDS_LIMIT);
 
                 foreach (Tool tool in tools)
                 {
@@ -355,7 +356,7 @@ namespace BondsNet
                             buttonCommandRun.Enabled = false;
                         }
 
-
+                        positions.Add(new Position());
                         //textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnFuturesClientHolding'..." + Environment.NewLine);
                         //_quik.Events.OnFuturesClientHolding += OnFuturesClientHoldingDo;
                     }
@@ -397,8 +398,6 @@ namespace BondsNet
                         Tool _tool = null;
                         textBoxLogsWindow.AppendText("Выводим данные о портфеле в таблицу..." + Environment.NewLine);
 
-                       
-
                         int i = 0;
                         int id_sec;
                         foreach(DepoLimitEx p_item in listDepoLimits)
@@ -430,8 +429,9 @@ namespace BondsNet
                                 {
                                     _tool = new Tool(_quik, sec, 0);
                                     portfolio.Add(new Portfolio(_tool, p_item));
+                                    
+                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
 
-                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, "НД", "НД", _tool.days_to_mat);
                                 }
 
                             }
@@ -472,7 +472,6 @@ namespace BondsNet
 
             if (tools != null )//если tools существует, обрабатываем
             {
-              
                  GetBestOffer();//рассчитать лучшее предложение
 
                
@@ -502,10 +501,10 @@ namespace BondsNet
                         }
 
                         // Расчет доходности по индикатору Боллинджера(SMA_Low)
-                        if(tools[i].Bollinger != null )
+                        if(tools[i].Bollinger != null && tools[i].Bollinger.SMA_Low != Double.NaN )
                         {
                             offer = Convert.ToDecimal(tools[i].Bollinger.SMA_Low);
-
+                            //если есть предложение, то обновляем индикатор
                             if (offer > 0)
                             {
                                 tmpGoalACY = CalcCurrACY(value, coupon, offer, couponPeriod);
@@ -612,7 +611,7 @@ namespace BondsNet
             int i = tools.Count;
             int id = 0;
             bool isSubscribedToolCandles = false;
-            List<double> _values = new List<double>();
+            Queue<double> _values = new Queue<double>();
             textBoxLogsWindow.AppendText("Получение истории торгов" + Environment.NewLine);
             
             foreach (Tool tool in tools)
@@ -626,16 +625,14 @@ namespace BondsNet
                     {
                         //  candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
                        List <Candle> candle =  _quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result;
-                       candle.ForEach(c => _values.Add(Convert.ToDouble(c.Close)));
+                       candle.ForEach(c => _values.Enqueue(Convert.ToDouble(c.Close)));
                        id = tools.IndexOf(tool);
                         if (id > 0)
                         {
                             tools[id].Bollinger = new Bollinger(_values);
                             
                         }
-                            
-
-                       textBoxLogsWindow.AppendText("Осталось загрузить: " + i  + Environment.NewLine);
+                        textBoxLogsWindow.AppendText("Осталось загрузить: " + i  + Environment.NewLine);
 
                     }
                     else
@@ -705,12 +702,15 @@ namespace BondsNet
             }
 
         }
+        /// <summary>
+        /// Функция вывода состояния портфеля и заявок на сделку
+        /// </summary>
         void Positions2Table()
         {
 
             int j = 0;
 
-
+            //выводим текущие открытые позиции по инструментам и их статус
             for (int i = 0; i < positions.Count; i++)
             {
                 if(positions[i].entranceOrderQty != 0)
@@ -737,58 +737,58 @@ namespace BondsNet
 
                     //    dataGridViewPositions.Rows.RemoveAt(rowIndex);
                     //}
-                   
+
 
                 }
-               
+
             }
 
-            j = 0;
-
             int id = 0;
+            int rowIndex = 0;
+            
             foreach (Portfolio portTool in portfolio)
             {
+                //Есть ли бумаги из списка в тек. портфеле
                 id = Securities.IndexOf(Securities.Where(n => n.SecCode == portTool.SecurityCode).FirstOrDefault());
+
+                row = dataGridViewRecs.Rows
+                    .Cast<DataGridViewRow>()
+                    .Where(r => r.Cells["portSecCode"].Value.ToString().Equals(portTool.SecurityCode))
+                    .First();
+
+                rowIndex = row.Index;
 
                 if (id < 0)
                 {
-                    dataGridViewRecs.Rows[j].DefaultCellStyle.BackColor = Color.LightSkyBlue;
-                    dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
+                    //если бумаги не входят в ломбардный лист, то подсвечиваем их
+                    dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightSkyBlue;
+                    dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Black;
 
                 }
 
+                //если есть данные о доходности, то выводим и подсвечиваем, если она больше текущей
                 if (portTool.LastPrice > 0 && portTool.AwgPosPrice > 0)
                 {
 
                     double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.LastPrice) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
-                    dataGridViewRecs.Rows[j].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
+                    dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
                     if(portTool.СurrentCoupon < sellACY)
                     {
-                        dataGridViewRecs.Rows[j].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
-                        dataGridViewRecs.Rows[j].DefaultCellStyle.ForeColor = Color.Black;
+                        dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
+                        dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Black;
                     }
                   
 
                 }
                 else
-                    dataGridViewRecs.Rows[j].Cells["portSellACY"].Value = "НД";
+                    dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Value = 0;
 
-                //if (portTool.CurrACY > 0)
-                //{
-                //    dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = portTool.CurrACY;
-                //}
-                //else
-                //    dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = "НД";
-                dataGridViewRecs.Rows[j].Cells["portCurrACY"].Value = (portTool.CurrACY > 0) ? Convert.ToString(portTool.CurrACY) : "НД";
-                
-
-                j++;
+                dataGridViewRecs.Rows[rowIndex].Cells["portCurrACY"].Value = portTool.CurrACY;             
             }
-
-
-
         }
-
+        /// <summary>
+        /// Функция вывода информации о новых сделках клиента
+        /// </summary>
         void NewPos2Table(Tool tool, int qty, DateTime timeEntr, decimal price)
         {
             dataGridViewDeals.Rows.Add();
@@ -805,24 +805,28 @@ namespace BondsNet
         /// </summary>
         void OnTradeDo(Trade trade)
         {
-            //исключаем повторный вызов OnTrade
-            if (listTrades.Contains(trade))
-                return;
-            //добавляем новую сделку в хранилище сделок
-            listTrades.Add(trade);
-
-            String corrID;
-
+            //исключаем сделки вне списка бумаг
             int i = GetIndexOfTool(trade.SecCode, trade.ClassCode);
 
             if (i == -1)
                 return;
+            //исключаем повторный вызов OnTrade
+            if (listTrades.Contains(trade))
+                return;
+
+            String corrID;
+
+            //добавляем новую сделку в хранилище сделок
+            listTrades.Add(trade);
 
             corrID = clientCode + "//" + positions[i].entranceOrderID;
 
             //обрабатываем сделки относящиейся к текущему инструменту by ID
             if (trade.Comment.Equals(corrID))
             {
+                tools[i].Bollinger.Values.Dequeue(); ;
+                tools[i].Bollinger.Values.Enqueue(trade.Price);
+                
                 if (positions[i].State == State.Active || positions[i].State == State.Waiting)
                 {
                     positions[i].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
@@ -832,12 +836,7 @@ namespace BondsNet
                     ///////////////////////
 
                     if (positions[i].toolQty <= 0)//заявка полностью удовлетворена
-                    {
-   
-                        positions[i].State = State.Completed;//заявка выполнена
-
-                        
-                    }
+                         positions[i].State = State.Completed;//заявка выполнена     
                 }       
             }
         }
@@ -847,16 +846,15 @@ namespace BondsNet
         /// </summary>
         void OnTransReplyDo(TransactionReply reply)
         {
-            //исключаем повторный вызов OnTransReply
-            if (listTransactionReply.Contains(reply))
-               return;
-            listTransactionReply.Add(reply);
-
             int i = GetIndexOfTool(reply.SecCode, reply.ClassCode);
 
             if (i == -1)
                 return;
 
+            //исключаем повторный вызов OnTransReply
+            if (listTransactionReply.Contains(reply))
+               return;
+            listTransactionReply.Add(reply);
 
             if (reply.TransID == positions[i].entranceOrderID)
             {
@@ -878,6 +876,11 @@ namespace BondsNet
         /// </summary>
         void OnOrderDo(Order order)
         {
+            int i = GetIndexOfTool(order.SecCode, order.ClassCode);
+
+            if (i == -1)
+                return;
+
             //исключаем повторный вызов OnOrder
             if (listOrders.Contains(order))
                 return;
@@ -885,10 +888,7 @@ namespace BondsNet
             listOrders.Add(order);//добавляем транзацию изменения заявки в хранилище
 
             String corrID;
-            int i = GetIndexOfTool(order.SecCode, order.ClassCode);
 
-            if (i == -1)
-                return;
 
             corrID = clientCode + "//" + positions[i].entranceOrderID;
 
