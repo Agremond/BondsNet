@@ -42,13 +42,16 @@ namespace BondsNet
         //Глубина расчета индикатора Боллинджера
         const int BB_DEEP = 5;
         //Длительность года в днях
-        static int DAYS_YEAR = 365;
+        const int DAYS_YEAR = 365;
+        //Желаемая минимальная доходность
+        const int defaultGoalACY = 13;
         //текущий выбранный инструмент в форме
         string secCode;
         //класс текущего выбранного инструмента
         string classCode = "";
         //индекс текущего инструмента
         int secCodeindex = 0;
+        
         //код клиента.
         string clientCode;
 
@@ -84,7 +87,6 @@ namespace BondsNet
         List<List <Candle> > candles = null;
 
         DataGridViewRow row;
-
 
         // FuturesClientHolding futuresPosition;
 
@@ -210,7 +212,7 @@ namespace BondsNet
                     {
 
                         ISIN = n_bond.Attributes["ISIN"].Value;
-                        goalACY = 13;
+                        goalACY = defaultGoalACY;
                         rank = 3;
 
                         if (ISIN.StartsWith("RU"))
@@ -356,7 +358,7 @@ namespace BondsNet
                             buttonCommandRun.Enabled = false;
                         }
 
-                        positions.Add(new Position());
+                        
                         //textBoxLogsWindow.AppendText("Подписываемся на колбэк 'OnFuturesClientHolding'..." + Environment.NewLine);
                         //_quik.Events.OnFuturesClientHolding += OnFuturesClientHoldingDo;
                     }
@@ -375,12 +377,9 @@ namespace BondsNet
                 _quik.Events.OnTransReply += OnTransReplyDo;
                 _quik.Events.OnOrder += OnOrderDo;
                 //подписаться на событие изменения баланс по бумагам
-               // _quik.Events.OnDepoLimit += OnDepoLimitDo;
+                // _quik.Events.OnDepoLimit += OnDepoLimitDo;
+
                 
-
-
-  
-                dataGridViewPositions.Rows.Add(tools.Count);
                 listBoxSecCode.SelectedIndex = 0;
 
                // загрузка истории торгов для расчета индикатора Боллинджера
@@ -467,6 +466,7 @@ namespace BondsNet
             decimal couponPeriod = 0;
             double tmpGoalACY = 0;
             int index;
+            int pos_id;
 
             decimal priceEntrance = 0;
 
@@ -496,8 +496,7 @@ namespace BondsNet
                                 //если время жизни меньше года, то учитываем дисконт/премию
                                 tools[i].CurrentACY += (100 - Convert.ToDouble(offer)) / 100;
                             }
-                           
-
+                          
                         }
 
                         // Расчет доходности по индикатору Боллинджера(SMA_Low)
@@ -521,23 +520,25 @@ namespace BondsNet
                     }
                     
                     
-                    //выводим статистику для существующих в портфеле бумаг
+                    //выводим статистику для бумаг существующих в портфеле
                     index = portfolio.IndexOf(portfolio.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
 
                     if (index >= 0)
                     {
 
-                        portfolio[index].CurrACY = tools[i].CurrentACY;
+                        portfolio[index].CurrentACY = tools[i].CurrentACY;
                         portfolio[index].LastPrice = tools[i].LastPrice;
                     }
                     #endregion
 
-                   
+
+
                     #region Расчет позиции для входа
 
-                        //отказаться от плоского списка в адресации positions, определять i наверняка
-                        if (positions[i].toolQty == 0 && positions[i].State == State.Waiting)
-                        {
+                    pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+
+                    if (positions[pos_id].toolQty == 0 && positions[pos_id].State == State.Waiting)
+                    {
                         //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
 
                         if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
@@ -549,15 +550,18 @@ namespace BondsNet
 
 
                                 EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
+                                
                                 textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
                             }
+
                         }
+
                     }
                     else
                     {
                         ;//есть позиция по инструменту
                     }
-                    #endregion
+                #endregion
 
 
                 }
@@ -659,12 +663,14 @@ namespace BondsNet
             {
                 for (int i = 0; i < toolsOrderBook.Count; i++)
                 {
-                    if (toolsOrderBook[i].sec_code != null && toolsOrderBook[i].class_code != null)
-                        if (tools[i].SecurityCode == toolsOrderBook[i].sec_code && tools[i].ClassCode == toolsOrderBook[i].class_code)
+                    int ordebook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == tools[i].SecurityCode).FirstOrDefault());
+
+                    if (toolsOrderBook[ordebook_id].sec_code != null && toolsOrderBook[ordebook_id].class_code != null)
+                        if (tools[i].SecurityCode == toolsOrderBook[ordebook_id].sec_code && tools[i].ClassCode == toolsOrderBook[ordebook_id].class_code)
                         {
-                            if (toolsOrderBook[i].offer != null)
+                            if (toolsOrderBook[ordebook_id].offer != null)
                             {
-                                tools[i].Offer = toolsOrderBook[i].offer[0].price;
+                                tools[i].Offer = toolsOrderBook[ordebook_id].offer[0].price;
                             }
                         }
                         else
@@ -674,17 +680,19 @@ namespace BondsNet
                 }
             }
 
-
         }
        
         void EntrancePosition(Operation operation, decimal price, int qty, Tool tool)
         {
-            int i = tools.IndexOf(tool); ;
+            positions.Add(new Position());
+            dataGridViewPositions.Rows.Add();
+            int i = positions.Count - 1;
 
             positions[i].priceEntrance = price;
             positions[i].entranceOrderQty = qty * tool.Lot;
             positions[i].toolQty = positions[i].entranceOrderQty;
             positions[i].dateTimeEntrance = DateTime.Now;
+            positions[i].SecurityCode = tool.SecurityCode;
 
             if (settings.RobotMode == "Боевой")
             {
@@ -708,22 +716,26 @@ namespace BondsNet
         void Positions2Table()
         {
 
-            int j = 0;
+            int row_id = 0;
 
             //выводим текущие открытые позиции по инструментам и их статус
             for (int i = 0; i < positions.Count; i++)
             {
                 if(positions[i].entranceOrderQty != 0)
                 {
+                    
+                    row_id = dataGridViewPositions.Rows
+                    .Cast<DataGridViewRow>()
+                    .Where(r => r.Cells["posToolName"].Value.ToString().Equals(positions[i].SecurityCode))
+                    .First().Index;
+                    dataGridViewPositions.Rows[row_id].Cells["posToolName"].Value = tools[i].SecurityCode;
+                    dataGridViewPositions.Rows[row_id].Cells["posOperation"].Value = "Покупка";//dirty hack
+                    dataGridViewPositions.Rows[row_id].Cells["posPrice"].Value = positions[i].priceEntrance;
+                    dataGridViewPositions.Rows[row_id].Cells["posQty"].Value = positions[i].entranceOrderQty;
+                    dataGridViewPositions.Rows[row_id].Cells["posRemains"].Value = positions[i].toolQty;
+                    dataGridViewPositions.Rows[row_id].Cells["posState"].Value = positions[i].State.ToString();
 
-                    dataGridViewPositions.Rows[j].Cells["posToolName"].Value = tools[i].SecurityCode;
-                    dataGridViewPositions.Rows[j].Cells["posOperation"].Value = "Покупка";//dirty hack
-                    dataGridViewPositions.Rows[j].Cells["posPrice"].Value = positions[i].priceEntrance;
-                    dataGridViewPositions.Rows[j].Cells["posQty"].Value = positions[i].entranceOrderQty;
-                    dataGridViewPositions.Rows[j].Cells["posRemains"].Value = positions[i].toolQty;
-                    dataGridViewPositions.Rows[j].Cells["posState"].Value = positions[i].State.ToString();
-                    j++;
-
+      
                 }
                 else
                 {
@@ -783,7 +795,7 @@ namespace BondsNet
                 else
                     dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Value = 0;
 
-                dataGridViewRecs.Rows[rowIndex].Cells["portCurrACY"].Value = portTool.CurrACY;             
+                dataGridViewRecs.Rows[rowIndex].Cells["portCurrACY"].Value = portTool.CurrentACY;             
             }
         }
         /// <summary>
@@ -793,6 +805,7 @@ namespace BondsNet
         {
             dataGridViewDeals.Rows.Add();
             int i = dataGridViewDeals.Rows.Count - 1;
+
             dataGridViewDeals.Rows[i].Cells["ToolName"].Value = tool.Name;
             dataGridViewDeals.Rows[i].Cells["Qty"].Value = qty;
             dataGridViewDeals.Rows[i].Cells["TimeEntr"].Value = timeEntr.ToShortTimeString();
@@ -824,19 +837,21 @@ namespace BondsNet
             //обрабатываем сделки относящиейся к текущему инструменту by ID
             if (trade.Comment.Equals(corrID))
             {
+                int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+
                 tools[i].Bollinger.Values.Dequeue(); ;
                 tools[i].Bollinger.Values.Enqueue(trade.Price);
                 
-                if (positions[i].State == State.Active || positions[i].State == State.Waiting)
+                if (positions[pos_id].State == State.Active || positions[pos_id].State == State.Waiting)
                 {
-                    positions[i].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
+                    positions[pos_id].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
                     
                                        //зафиксировать цену покупки для статистики
                     //....
                     ///////////////////////
 
-                    if (positions[i].toolQty <= 0)//заявка полностью удовлетворена
-                         positions[i].State = State.Completed;//заявка выполнена     
+                    if (positions[pos_id].toolQty <= 0)//заявка полностью удовлетворена
+                         positions[pos_id].State = State.Completed;//заявка выполнена     
                 }       
             }
         }
@@ -856,16 +871,17 @@ namespace BondsNet
                return;
             listTransactionReply.Add(reply);
 
-            if (reply.TransID == positions[i].entranceOrderID)
+            int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+            if (reply.TransID == positions[pos_id].entranceOrderID)
             {
                 if (reply.Status == 3)
                 { 
-                    positions[i].State = (positions[i].State == State.Waiting) ? State.Active : positions[i].State;
+                    positions[pos_id].State = (positions[pos_id].State == State.Waiting) ? State.Active : positions[pos_id].State;
                 }
                 else
                 {
                     if (reply.Status > 3)
-                        positions[i].State = (positions[i].State == State.Waiting) ? State.Error : positions[i].State;
+                        positions[pos_id].State = (positions[pos_id].State == State.Waiting) ? State.Error : positions[pos_id].State;
                 }
             }
 
@@ -896,15 +912,17 @@ namespace BondsNet
 
             if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
             {
+                int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+
                 if (order.Capacity == 0 || order.State == State.Completed)
                 {
-                    positions[i].State = State.Completed;//заявка выполнена
+                    positions[pos_id].State = State.Completed;//заявка выполнена
                 }
                 else
                 {
                     if (order.Flags.HasFlag(OrderTradeFlags.Canceled))
                     {
-                        positions[i].State = State.Canceled;//заявка отменена
+                        positions[pos_id].State = State.Canceled;//заявка отменена
                     }
                 }
             }
@@ -917,8 +935,8 @@ namespace BondsNet
 
             if (i == -1)
                 return;
-
-            toolsOrderBook[i] = quote;
+            int ordebook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == tools[i].SecurityCode).FirstOrDefault());
+            toolsOrderBook[ordebook_id] = quote;
            
         }
 

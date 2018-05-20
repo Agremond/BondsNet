@@ -15,6 +15,10 @@ public class Position
     /// </summary>
     public string robotMode;
     /// <summary>
+    /// Идентификатор бумаги
+    /// </summary>
+    public string SecurityCode;
+    /// <summary>
     /// ID позиции
     /// </summary>
     public string positionID;

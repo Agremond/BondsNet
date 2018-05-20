@@ -55,7 +55,7 @@ public class Portfolio
     /// <summary>
     /// Текущая дохождность покупки.
     /// </summary>
-    public double CurrACY { get { return currACY; } set { currACY = value; } }
+    public double CurrentACY { get { return currACY; } set { currACY = value; } }
 
     #endregion
 
