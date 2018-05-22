@@ -338,7 +338,7 @@ namespace BondsNet
                         {
                             //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
 
-                            toolsOrderBook.Add(new OrderBook());
+                           
 
                             timerRenewForm.Enabled = true;
                             started = true;
@@ -536,31 +536,34 @@ namespace BondsNet
                     #region Расчет позиции для входа
 
                     pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
-
-                    if (positions[pos_id].toolQty == 0 && positions[pos_id].State == State.Waiting)
+                    if(pos_id >= 0)
                     {
-                        //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
-
-                        if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
+                        if (positions[pos_id].toolQty == 0 && positions[pos_id].State == State.Waiting)
                         {
-                            if (tools[i].Offer > 0)
+                            //Продумать и реализовать ротацию бумаг с целью повышения кредитного рейтинга портфеля и повышения доходности.
+
+                            if (tools[i].CurrentACY >= tools[i].GoalACY && tools[i].GoalACY > 0) // при подходящей доходности  больше "0" отправляем заявку на покупку
                             {
-                                priceEntrance = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
-                                int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
+                                if (tools[i].Offer > 0)
+                                {
+                                    priceEntrance = Convert.ToDecimal(tools[i].Offer) + tools[i].Slip;
+                                    int qtyOrder = Convert.ToInt32(settings.QtyOrder / (priceEntrance / 100) * tools[i].Value);
 
 
-                                EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
-                                
-                                textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
+                                    EntrancePosition(Operation.Buy, priceEntrance, qtyOrder, tools[i]);
+
+                                    textBoxLogsWindow.AppendText("Сигнал на вход в позицию (long): " + tools[i].SecurityCode + " : " + priceEntrance.ToString() + Environment.NewLine);
+                                }
+
                             }
 
                         }
-
+                        else
+                        {
+                            ;//есть позиция по инструменту
+                        }
                     }
-                    else
-                    {
-                        ;//есть позиция по инструменту
-                    }
+                    
                 #endregion
 
 
@@ -569,23 +572,24 @@ namespace BondsNet
                 Positions2Table();
             }
                 
-
-            if(positions[secCodeindex] != null )
-            {  
-                textBoxPositionPE.Text = Math.Round(positions[secCodeindex].priceEntrance, tools[secCodeindex].PriceAccuracy).ToString();
-                textBoxPositionQty.Text = positions[secCodeindex].toolQty.ToString();
-            }
+            if(positions != null && positions.Count != 0)
+                if(positions[secCodeindex] != null )
+                {  
+                    textBoxPositionPE.Text = Math.Round(positions[secCodeindex].priceEntrance, tools[secCodeindex].PriceAccuracy).ToString();
+                    textBoxPositionQty.Text = positions[secCodeindex].toolQty.ToString();
+                }
          
 
-            if (toolsOrderBook != null && toolsOrderBook[secCodeindex].bid != null)
-            {
-                int bidID = toolsOrderBook[secCodeindex].bid.Length - 1;
-                if (toolsOrderBook[secCodeindex].bid[bidID].price > 0)
-                    textBoxBestBid.Text = Convert.ToString(toolsOrderBook[secCodeindex].bid[bidID].price);
-                else
-                    textBoxBestBid.Text = "НД";
+            if (toolsOrderBook != null && toolsOrderBook.Count != 0)
+                if( toolsOrderBook[secCodeindex].bid != null)
+                {
+                    int bidID = toolsOrderBook[secCodeindex].bid.Length - 1;
+                    if (toolsOrderBook[secCodeindex].bid[bidID].price > 0)
+                        textBoxBestBid.Text = Convert.ToString(toolsOrderBook[secCodeindex].bid[bidID].price);
+                    else
+                        textBoxBestBid.Text = "НД";
 
-            }
+                  }
             else
             {
                 textBoxBestBid.Text = "НД";
@@ -663,20 +667,22 @@ namespace BondsNet
             {
                 for (int i = 0; i < toolsOrderBook.Count; i++)
                 {
-                    int ordebook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == tools[i].SecurityCode).FirstOrDefault());
+                    int tool_id = tools.IndexOf(tools.Where(n => n.SecurityCode == toolsOrderBook[i].sec_code).FirstOrDefault());
 
-                    if (toolsOrderBook[ordebook_id].sec_code != null && toolsOrderBook[ordebook_id].class_code != null)
-                        if (tools[i].SecurityCode == toolsOrderBook[ordebook_id].sec_code && tools[i].ClassCode == toolsOrderBook[ordebook_id].class_code)
-                        {
-                            if (toolsOrderBook[ordebook_id].offer != null)
+                    if (tool_id >= 0)
+                        if (toolsOrderBook[i].sec_code != null && toolsOrderBook[i].class_code != null)
+                            if (tools[tool_id].SecurityCode == toolsOrderBook[i].sec_code && tools[tool_id].ClassCode == toolsOrderBook[i].class_code)
                             {
-                                tools[i].Offer = toolsOrderBook[ordebook_id].offer[0].price;
+                                if (toolsOrderBook[i].offer != null)
+                                {
+                                    tools[tool_id].Offer = toolsOrderBook[i].offer[0].price;
+                                }
                             }
-                        }
-                        else
-                        {
-                            textBoxLogsWindow.AppendText("Рассинхронизация OrderBook" + Environment.NewLine);
-                        }
+                            else
+                            {
+                                textBoxLogsWindow.AppendText("Рассинхронизация OrderBook" + Environment.NewLine);
+                            }
+
                 }
             }
 
@@ -931,13 +937,15 @@ namespace BondsNet
 
         void OnQuoteDo(OrderBook quote)
         {
-            int i = GetIndexOfTool(quote.sec_code, quote.class_code);
+            int orderbook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == quote.sec_code).FirstOrDefault());
+            if (orderbook_id == -1)
+            {
+                toolsOrderBook.Add(new OrderBook());
+                toolsOrderBook[toolsOrderBook.Count-1] = quote;
+            }
+            else
+                toolsOrderBook[orderbook_id] = quote;
 
-            if (i == -1)
-                return;
-            int ordebook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == tools[i].SecurityCode).FirstOrDefault());
-            toolsOrderBook[ordebook_id] = quote;
-           
         }
 
         void OnDepoLimitDo(DepoLimit depolimit)
