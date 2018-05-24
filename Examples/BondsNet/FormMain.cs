@@ -397,49 +397,38 @@ namespace BondsNet
                         Tool _tool = null;
                         textBoxLogsWindow.AppendText("Выводим данные о портфеле в таблицу..." + Environment.NewLine);
 
-                        int i = 0;
-                        int id_sec;
+                        
+                        int id_tool;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
                             if (p_item.LimitKind != LimitKind.T0)
                                 continue;
+  
+                            id_tool = tools.IndexOf(tools.Where(s => s.SecurityCode == p_item.SecCode).FirstOrDefault());
 
-                            Security sec = new Security(p_item.SecCode, 0, 14);
-                            id_sec = Securities.IndexOf(Securities.Where(s => s.SecCode == p_item.SecCode).FirstOrDefault());
-
-                            if (id_sec >= 0)
+                            if (id_tool >= 0)
                             {
-                                sec.ClassCode = Securities[id_sec].ClassCode;
+                                portfolio.Add(new Portfolio(tools[id_tool], p_item));
                             }
                             else
                             {
                                 try
                                 {
+                                    Security sec = new Security(p_item.SecCode, 0, 14);
                                     sec.ClassCode = _quik.Class.GetSecurityClass("SPBFUT,TQBR,TQBS,TQNL,TQLV,TQNE,TQOB,EQOB", secCode).Result;
+                                    if (sec.ClassCode != "" && sec.ClassCode != null && sec.SecCode.Count() > 6)
+                                    {
+                                        _tool = new Tool(_quik, sec, 0);
+                                        portfolio.Add(new Portfolio(_tool, p_item));
+                                    }
+
                                 }
                                 catch
                                 {
                                     textBoxLogsWindow.AppendText("Ошибка определения класса инструмента. Убедитесь, что тикер указан правильно" + Environment.NewLine);
                                 }
                             }
-                            try
-                            {
-                                if (sec.ClassCode != "" && sec.ClassCode != null && sec.SecCode.Count() > 6 )
-                                {
-                                    _tool = new Tool(_quik, sec, 0);
-                                    portfolio.Add(new Portfolio(_tool, p_item));
-                                    
-                                    dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
-
-                                }
-
-                            }
-                            catch
-                            {
-                                textBoxLogsWindow.AppendText("Ошибка определения параметров инструмента в портфеле." + Environment.NewLine);
-                            }
-
-                            i++;
+                            dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
                         }
                      }
                     else
@@ -516,7 +505,7 @@ namespace BondsNet
                     }
                     else
                     {
-                        tools[i].CurrentACY = -999;//dirty hack
+                        tools[i].CurrentACY = 0;
                     }
                     
                     
