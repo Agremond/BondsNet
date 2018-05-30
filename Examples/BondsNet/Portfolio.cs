@@ -8,6 +8,7 @@ using QuikSharp.DataStructures;
 
 public class Portfolio
 {
+
     string name;
     string securityCode;
     string classCode;
@@ -56,6 +57,7 @@ public class Portfolio
     /// Текущая дохождность покупки.
     /// </summary>
     public double CurrentACY { get { return currACY; } set { currACY = value; } }
+
 
     #endregion
 

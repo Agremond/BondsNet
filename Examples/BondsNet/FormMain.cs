@@ -394,13 +394,14 @@ namespace BondsNet
 
                     if (listDepoLimits.Count > 0)
                     {
-                        Tool _tool = null;
+                        Tool _tool;
                         textBoxLogsWindow.AppendText("Выводим данные о портфеле в таблицу..." + Environment.NewLine);
 
                         
                         int id_tool;
                         foreach(DepoLimitEx p_item in listDepoLimits)
                         {
+                            _tool = null;
                             if (p_item.LimitKind != LimitKind.T0)
                                 continue;
   
@@ -428,7 +429,8 @@ namespace BondsNet
                                     textBoxLogsWindow.AppendText("Ошибка определения класса инструмента. Убедитесь, что тикер указан правильно" + Environment.NewLine);
                                 }
                             }
-                            dataGridViewRecs.Rows.Add(_tool.Name, _tool.SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
+                            if(_tool != null && p_item!= null)
+                                dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, 0, 0, 0, _tool.days_to_mat);
                         }
                      }
                     else
@@ -718,17 +720,23 @@ namespace BondsNet
             {
                 if(positions[i].entranceOrderQty != 0)
                 {
-                    
-                    row_id = dataGridViewPositions.Rows
+
+                    row = dataGridViewPositions.Rows
                     .Cast<DataGridViewRow>()
                     .Where(r => r.Cells["posToolName"].Value.ToString().Equals(positions[i].SecurityCode))
-                    .First().Index;
-                    dataGridViewPositions.Rows[row_id].Cells["posToolName"].Value = tools[i].SecurityCode;
-                    dataGridViewPositions.Rows[row_id].Cells["posOperation"].Value = "Покупка";//dirty hack
-                    dataGridViewPositions.Rows[row_id].Cells["posPrice"].Value = positions[i].priceEntrance;
-                    dataGridViewPositions.Rows[row_id].Cells["posQty"].Value = positions[i].entranceOrderQty;
-                    dataGridViewPositions.Rows[row_id].Cells["posRemains"].Value = positions[i].toolQty;
-                    dataGridViewPositions.Rows[row_id].Cells["posState"].Value = positions[i].State.ToString();
+                    .FirstOrDefault();
+                    
+                    if(row != null)
+                    {
+                        row_id = row.Index;
+                        dataGridViewPositions.Rows[row_id].Cells["posToolName"].Value = tools[i].SecurityCode;
+                        dataGridViewPositions.Rows[row_id].Cells["posOperation"].Value = "Покупка";//dirty hack
+                        dataGridViewPositions.Rows[row_id].Cells["posPrice"].Value = positions[i].priceEntrance;
+                        dataGridViewPositions.Rows[row_id].Cells["posQty"].Value = positions[i].entranceOrderQty;
+                        dataGridViewPositions.Rows[row_id].Cells["posRemains"].Value = positions[i].toolQty;
+                        dataGridViewPositions.Rows[row_id].Cells["posState"].Value = positions[i].State.ToString();
+                    }
+                    
 
       
                 }
@@ -750,47 +758,56 @@ namespace BondsNet
 
             }
 
-            int id = 0;
-            int rowIndex = 0;
+            int sec_id = 0;
+
+
             
             foreach (Portfolio portTool in portfolio)
             {
-                //Есть ли бумаги из списка в тек. портфеле
-                id = Securities.IndexOf(Securities.Where(n => n.SecCode == portTool.SecurityCode).FirstOrDefault());
+
 
                 row = dataGridViewRecs.Rows
                     .Cast<DataGridViewRow>()
                     .Where(r => r.Cells["portSecCode"].Value.ToString().Equals(portTool.SecurityCode))
-                    .First();
+                    .FirstOrDefault();
 
-                rowIndex = row.Index;
-
-                if (id < 0)
+                if(row != null)
                 {
-                    //если бумаги не входят в ломбардный лист, то подсвечиваем их
-                    dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightSkyBlue;
-                    dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Black;
+                    row_id = row.Index;
+                    //Есть ли бумаги из списка в тек. портфеле
+                    sec_id = Securities.IndexOf(Securities.Where(n => n.SecCode == portTool.SecurityCode).FirstOrDefault());
 
-                }
-
-                //если есть данные о доходности, то выводим и подсвечиваем, если она больше текущей
-                if (portTool.LastPrice > 0 && portTool.AwgPosPrice > 0)
-                {
-
-                    double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.LastPrice) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
-                    dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
-                    if(portTool.СurrentCoupon < sellACY)
+                    if (sec_id < 0)
                     {
-                        dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
-                        dataGridViewRecs.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Black;
+                        //если бумаги не входят в ломбардный лист, то подсвечиваем их
+                        dataGridViewRecs.Rows[row_id].DefaultCellStyle.BackColor = Color.LightSkyBlue;
+                        dataGridViewRecs.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
+
                     }
-                  
 
+                    //если есть данные о доходности, то выводим и подсвечиваем, если она больше текущей
+                    if (portTool.LastPrice > 0 && portTool.AwgPosPrice > 0)
+                    {
+
+                        double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.LastPrice) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
+                        dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
+                        if (portTool.СurrentCoupon < sellACY)
+                        {
+                            dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
+                            dataGridViewRecs.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
+                        }
+
+
+                    }
+                    else
+                        dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Value = 0;
+
+                    dataGridViewRecs.Rows[row_id].Cells["portCurrACY"].Value = portTool.CurrentACY;
                 }
-                else
-                    dataGridViewRecs.Rows[rowIndex].Cells["portSellACY"].Value = 0;
+                    
 
-                dataGridViewRecs.Rows[rowIndex].Cells["portCurrACY"].Value = portTool.CurrentACY;             
+
+                         
             }
         }
         /// <summary>
@@ -832,22 +849,27 @@ namespace BondsNet
             //обрабатываем сделки относящиейся к текущему инструменту by ID
             if (trade.Comment.Equals(corrID))
             {
-                int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
-
-                tools[i].Bollinger.Values.Dequeue(); ;
-                tools[i].Bollinger.Values.Enqueue(trade.Price);
-                
-                if (positions[pos_id].State == State.Active || positions[pos_id].State == State.Waiting)
+                lock (positions)
                 {
-                    positions[pos_id].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
-                    
-                                       //зафиксировать цену покупки для статистики
-                    //....
-                    ///////////////////////
+                    int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
 
-                    if (positions[pos_id].toolQty <= 0)//заявка полностью удовлетворена
-                         positions[pos_id].State = State.Completed;//заявка выполнена     
-                }       
+
+
+                    tools[i].Bollinger.Values.Dequeue(); ;
+                    tools[i].Bollinger.Values.Enqueue(trade.Price);
+
+                    if (positions[pos_id].State == State.Active || positions[pos_id].State == State.Waiting)
+                    {
+                        positions[pos_id].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции
+
+                        //зафиксировать цену покупки для статистики
+                        //....
+                        ///////////////////////
+
+                        if (positions[pos_id].toolQty <= 0)//заявка полностью удовлетворена
+                            positions[pos_id].State = State.Completed;//заявка выполнена     
+                    }
+                }
             }
         }
 
@@ -905,35 +927,44 @@ namespace BondsNet
 
             //обрабатываем заявки относящиейся к текущему нструменту
 
-            if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+            lock (positions)
             {
-                int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
+                if (order.Comment.Equals(corrID))//FYI: what is the format: СС//transid or transid
+                {
+                    int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
 
-                if (order.Capacity == 0 || order.State == State.Completed)
-                {
-                    positions[pos_id].State = State.Completed;//заявка выполнена
-                }
-                else
-                {
-                    if (order.Flags.HasFlag(OrderTradeFlags.Canceled))
+                    if (order.Capacity == 0 || order.State == State.Completed)
                     {
-                        positions[pos_id].State = State.Canceled;//заявка отменена
+                        positions[pos_id].State = State.Completed;//заявка выполнена
+                    }
+                    else
+                    {
+                        if (order.Flags.HasFlag(OrderTradeFlags.Canceled))
+                        {
+                            positions[pos_id].State = State.Canceled;//заявка отменена
+                        }
                     }
                 }
             }
+
+           
            
         }
 
         void OnQuoteDo(OrderBook quote)
         {
-            int orderbook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == quote.sec_code).FirstOrDefault());
-            if (orderbook_id == -1)
+            lock(toolsOrderBook)
             {
-                toolsOrderBook.Add(new OrderBook());
-                toolsOrderBook[toolsOrderBook.Count-1] = quote;
+                int orderbook_id = toolsOrderBook.IndexOf(toolsOrderBook.Where(n => n.sec_code == quote.sec_code).FirstOrDefault());
+                if (orderbook_id == -1)
+                {
+                    toolsOrderBook.Add(new OrderBook());
+                    toolsOrderBook[toolsOrderBook.Count - 1] = quote;
+                }
+                else
+                    toolsOrderBook[orderbook_id] = quote;
             }
-            else
-                toolsOrderBook[orderbook_id] = quote;
+           
 
         }
 
