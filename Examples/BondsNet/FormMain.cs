@@ -26,7 +26,7 @@ namespace BondsNet
     {
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
         public static Quik _quik;//экземпляр интерфейса QUIK
-        const int BONDS_LIMIT = 10;
+        const int BONDS_LIMIT = 190;
         bool isServerConnected = false; //подключен к сервер QUIK
         
         bool started = false;//флаг запуска робота
@@ -410,6 +410,7 @@ namespace BondsNet
                             if (id_tool >= 0)
                             {
                                 portfolio.Add(new Portfolio(tools[id_tool], p_item));
+                                dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, tools[id_tool].CouponPercent, 0, 0, tools[id_tool].days_to_mat);
                             }
                             else
                             {
@@ -421,6 +422,8 @@ namespace BondsNet
                                     {
                                         _tool = new Tool(_quik, sec, 0);
                                         portfolio.Add(new Portfolio(_tool, p_item));
+                                        dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
+
                                     }
 
                                 }
@@ -429,8 +432,8 @@ namespace BondsNet
                                     textBoxLogsWindow.AppendText("Ошибка определения класса инструмента. Убедитесь, что тикер указан правильно" + Environment.NewLine);
                                 }
                             }
-                            if(_tool != null && p_item!= null)
-                                dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, p_item.AweragePositionPrice, 0, 0, 0, _tool.days_to_mat);
+                        
+                               
                         }
                      }
                     else
@@ -493,7 +496,9 @@ namespace BondsNet
                         // Расчет доходности по индикатору Боллинджера(SMA_Low)
                         if(tools[i].Bollinger != null && tools[i].Bollinger.SMA_Low != Double.NaN )
                         {
+
                             offer = Convert.ToDecimal(tools[i].Bollinger.SMA_Low);
+                        
                             //если есть предложение, то обновляем индикатор
                             if (offer > 0)
                             {
