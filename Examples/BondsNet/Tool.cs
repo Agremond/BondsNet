@@ -34,6 +34,7 @@ public class Tool
     decimal value;
     double currACY;
     double offer;
+    double bid;
 
 
     #region Свойства
@@ -117,6 +118,16 @@ public class Tool
         set
         { offer = value; }
     }
+    /// <summary>
+    /// Лучший спрос
+    /// </summary>
+    public double Bid
+    {
+        get
+        { return bid; }
+        set
+        { bid = value; }
+    }
     ///  /// <summary>
     /// Гарантийное обеспечение (только для срочного рынка)
     /// для фондовой секции = 0
@@ -172,8 +183,9 @@ public class Tool
         _quik = quik;
         GetBaseParam(quik, sec.SecCode, sec.ClassCode, koefSlip);
         goalACY = sec.goalACY;
-        currACY = -999;
-        offer = -999;
+        currACY = 0;
+        offer = 0;
+        bid = 0;
         rank = sec.Rank;
         
     }

@@ -14,6 +14,7 @@ public class Portfolio
     string classCode;
     long toolQty;
     double AweragePositionPrice;
+    double bid;
     double currentCoupon;
     double sellACY;
     double currACY;
@@ -28,6 +29,10 @@ public class Portfolio
     /// Цена последней сделки
     /// </summary>
     public decimal LastPrice { get { return lastPrice; } set { lastPrice = value; } }
+    /// <summary>
+    /// Лучший спрос
+    /// </summary>
+    public double Bid { get { return bid; } set { bid = value; } }
     /// <summary>
     /// Код инструмента (бумаги)
     /// </summary>
@@ -77,6 +82,8 @@ public class Portfolio
             currentCoupon = _tool.CouponPercent;
             sellACY = 0;
             currACY = 0;
+            bid = 0;
+            
             lastPrice = _tool.LastPrice;
         }
             

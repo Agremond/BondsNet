@@ -26,7 +26,7 @@ namespace BondsNet
     {
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
         public static Quik _quik;//экземпляр интерфейса QUIK
-        const int BONDS_LIMIT = 190;
+        const int BONDS_LIMIT = 50;
         bool isServerConnected = false; //подключен к сервер QUIK
         
         bool started = false;//флаг запуска робота
@@ -466,7 +466,7 @@ namespace BondsNet
 
             if (tools != null )//если tools существует, обрабатываем
             {
-                 GetBestOffer();//рассчитать лучшее предложение
+                GetBestOfferAndBid();//рассчитать лучшее предложение
 
                
                 for (int i = 0; i < tools.Count; i++)
@@ -524,6 +524,7 @@ namespace BondsNet
 
                         portfolio[index].CurrentACY = tools[i].CurrentACY;
                         portfolio[index].LastPrice = tools[i].LastPrice;
+                        portfolio[index].Bid = tools[i].Bid;
                     }
                     #endregion
 
@@ -575,7 +576,7 @@ namespace BondsNet
                     textBoxPositionQty.Text = positions[secCodeindex].toolQty.ToString();
                 }
          
-
+            //заменить на tool!!!!
             if (toolsOrderBook != null && toolsOrderBook.Count != 0)
                 if( toolsOrderBook[secCodeindex].bid != null)
                 {
@@ -656,7 +657,7 @@ namespace BondsNet
 
         }
 
-        void GetBestOffer()//реализовать non-void с возвращением ошибки
+        void GetBestOfferAndBid()//реализовать non-void с возвращением ошибки
         {
            
             if (toolsOrderBook != null)
@@ -671,7 +672,15 @@ namespace BondsNet
                             {
                                 if (toolsOrderBook[i].offer != null)
                                 {
+
                                     tools[tool_id].Offer = toolsOrderBook[i].offer[0].price;
+                                }
+                                if (toolsOrderBook[i].bid != null)
+                                {
+                                    int bidID = toolsOrderBook[i].bid.Length - 1;
+                                    if (toolsOrderBook[i].bid[bidID].price > 0)
+                                        tools[tool_id].Bid = toolsOrderBook[i].bid[bidID].price;
+                                    
                                 }
                             }
                             else
@@ -683,6 +692,8 @@ namespace BondsNet
             }
 
         }
+
+
        
         void EntrancePosition(Operation operation, decimal price, int qty, Tool tool)
         {
@@ -791,10 +802,10 @@ namespace BondsNet
                     }
 
                     //если есть данные о доходности, то выводим и подсвечиваем, если она больше текущей
-                    if (portTool.LastPrice > 0 && portTool.AwgPosPrice > 0)
+                    if (portTool.Bid > 0 && portTool.AwgPosPrice > 0)
                     {
 
-                        double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.LastPrice) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
+                        double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.Bid) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
                         dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
                         if (portTool.СurrentCoupon < sellACY)
                         {
