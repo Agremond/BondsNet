@@ -26,7 +26,7 @@ namespace BondsNet
     {
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
         public static Quik _quik;//экземпляр интерфейса QUIK
-        const int BONDS_LIMIT = 50;
+        const int BONDS_LIMIT = 190;
         bool isServerConnected = false; //подключен к сервер QUIK
         
         bool started = false;//флаг запуска робота
@@ -616,12 +616,12 @@ namespace BondsNet
             int i = tools.Count;
             int id = 0;
             bool isSubscribedToolCandles = false;
-            Queue<double> _values = new Queue<double>();
+            Queue<double> _temp_val = new Queue<double>();
             textBoxLogsWindow.AppendText("Получение истории торгов" + Environment.NewLine);
             
             foreach (Tool tool in tools)
             {
-                _values.Clear();
+                _temp_val.Clear();
                 try
                 {
                     _quik.Candles.Subscribe(tool.ClassCode, tool.SecurityCode, CandleInterval.H1).Wait();
@@ -630,11 +630,11 @@ namespace BondsNet
                     {
                         //  candles.Add(new List<Candle>(_quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result));
                        List <Candle> candle =  _quik.Candles.GetLastCandles(tool.ClassCode, tool.SecurityCode, CandleInterval.H1, BB_DEEP).Result;
-                       candle.ForEach(c => _values.Enqueue(Convert.ToDouble(c.Close)));
+                       candle.ForEach(c => _temp_val.Enqueue(Convert.ToDouble(c.Close)));
                        id = tools.IndexOf(tool);
-                        if (id > 0)
+                        if (id >= 0)
                         {
-                            tools[id].Bollinger = new Bollinger(_values);
+                            tools[id].Bollinger = new Bollinger(_temp_val);
                             
                         }
                         textBoxLogsWindow.AppendText("Осталось загрузить: " + i  + Environment.NewLine);
@@ -851,6 +851,7 @@ namespace BondsNet
 
             if (i == -1)
                 return;
+
             //исключаем повторный вызов OnTrade
             if (listTrades.Contains(trade))
                 return;
@@ -862,6 +863,10 @@ namespace BondsNet
 
             corrID = clientCode + "//" + positions[i].entranceOrderID;
 
+            //переместить за пределы проверок сщуествующих транзакций
+            tools[i].Bollinger.Values.Dequeue(); ;
+            tools[i].Bollinger.Values.Enqueue(trade.Price);
+
             //обрабатываем сделки относящиейся к текущему инструменту by ID
             if (trade.Comment.Equals(corrID))
             {
@@ -869,11 +874,7 @@ namespace BondsNet
                 {
                     int pos_id = positions.IndexOf(positions.Where(n => n.SecurityCode == tools[i].SecurityCode).FirstOrDefault());
 
-
-
-                    tools[i].Bollinger.Values.Dequeue(); ;
-                    tools[i].Bollinger.Values.Enqueue(trade.Price);
-
+                    
                     if (positions[pos_id].State == State.Active || positions[pos_id].State == State.Waiting)
                     {
                         positions[pos_id].toolQty -= trade.Quantity;//прошла сделка.корректируем текущий остаток в позиции

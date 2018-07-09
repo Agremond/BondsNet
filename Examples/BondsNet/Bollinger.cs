@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 public class Bollinger
 {
@@ -34,14 +36,23 @@ public class Bollinger
         get { return _values; }
         set
         {
-            _values = value;
+            _values = DeepCopy(value);
             calculateB();
         }
     }
 
     #endregion
 
-
+    private static T DeepCopy<T>(T other)
+    {
+        using (MemoryStream ms = new MemoryStream())
+        {
+            BinaryFormatter formatter = new BinaryFormatter();
+            formatter.Serialize(ms, other);
+            ms.Position = 0;
+            return (T)formatter.Deserialize(ms);
+        }
+    }
     private double getStandardDeviation(Queue<double> doubleList)
     {
         if (doubleList != null)
@@ -79,7 +90,7 @@ public class Bollinger
     }
     public Bollinger(Queue<double> values)
     {
-        _values = values;
+        _values = DeepCopy(values);
         
         smaHigh = 0;
         smaLow = 0;
@@ -88,6 +99,7 @@ public class Bollinger
         calculateB();
 
     }
+    
 }
 
 
