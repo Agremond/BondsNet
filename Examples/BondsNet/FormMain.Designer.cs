@@ -32,6 +32,7 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
             this.timerRenewForm = new System.Windows.Forms.Timer(this.components);
             this.tabPage0 = new System.Windows.Forms.TabPage();
             this.textBoxLogsWindow = new System.Windows.Forms.TextBox();
@@ -114,8 +115,7 @@
             this.label10 = new System.Windows.Forms.Label();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.dataGridViewRecs = new System.Windows.Forms.DataGridView();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.dataGridViewPortf = new System.Windows.Forms.DataGridView();
             this.portName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portSecCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portQty = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -124,6 +124,13 @@
             this.portSellACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portCurrACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.portMatDays = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.dataGridViewRecom = new System.Windows.Forms.DataGridView();
+            this.recomName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.recomSecCode = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.recomCurrentKoupon = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.recomCurrACY = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.recomMatDays = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabPage0.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPositions)).BeginInit();
@@ -132,7 +139,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewDeals)).BeginInit();
             this.tabControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewRecs)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPortf)).BeginInit();
+            this.tabPage2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewRecom)).BeginInit();
             this.SuspendLayout();
             // 
             // timerRenewForm
@@ -940,7 +949,7 @@
             // 
             // tabPage1
             // 
-            this.tabPage1.Controls.Add(this.dataGridViewRecs);
+            this.tabPage1.Controls.Add(this.dataGridViewPortf);
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
@@ -949,11 +958,11 @@
             this.tabPage1.Text = "Портфель";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
-            // dataGridViewRecs
+            // dataGridViewPortf
             // 
-            this.dataGridViewRecs.AllowUserToAddRows = false;
-            this.dataGridViewRecs.AllowUserToDeleteRows = false;
-            this.dataGridViewRecs.AllowUserToResizeRows = false;
+            this.dataGridViewPortf.AllowUserToAddRows = false;
+            this.dataGridViewPortf.AllowUserToDeleteRows = false;
+            this.dataGridViewPortf.AllowUserToResizeRows = false;
             dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Control;
             dataGridViewCellStyle3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
@@ -961,9 +970,9 @@
             dataGridViewCellStyle3.SelectionBackColor = System.Drawing.SystemColors.Highlight;
             dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
             dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridViewRecs.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle3;
-            this.dataGridViewRecs.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridViewRecs.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.dataGridViewPortf.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle3;
+            this.dataGridViewPortf.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridViewPortf.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.portName,
             this.portSecCode,
             this.portQty,
@@ -972,24 +981,14 @@
             this.portSellACY,
             this.portCurrACY,
             this.portMatDays});
-            this.dataGridViewRecs.Location = new System.Drawing.Point(6, 6);
-            this.dataGridViewRecs.MultiSelect = false;
-            this.dataGridViewRecs.Name = "dataGridViewRecs";
-            this.dataGridViewRecs.ReadOnly = true;
-            this.dataGridViewRecs.RowHeadersVisible = false;
-            this.dataGridViewRecs.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
-            this.dataGridViewRecs.Size = new System.Drawing.Size(978, 513);
-            this.dataGridViewRecs.TabIndex = 17;
-            // 
-            // tabPage2
-            // 
-            this.tabPage2.Location = new System.Drawing.Point(4, 22);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(1352, 657);
-            this.tabPage2.TabIndex = 3;
-            this.tabPage2.Text = "Рекомендации";
-            this.tabPage2.UseVisualStyleBackColor = true;
+            this.dataGridViewPortf.Location = new System.Drawing.Point(6, 6);
+            this.dataGridViewPortf.MultiSelect = false;
+            this.dataGridViewPortf.Name = "dataGridViewPortf";
+            this.dataGridViewPortf.ReadOnly = true;
+            this.dataGridViewPortf.RowHeadersVisible = false;
+            this.dataGridViewPortf.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            this.dataGridViewPortf.Size = new System.Drawing.Size(978, 513);
+            this.dataGridViewPortf.TabIndex = 17;
             // 
             // portName
             // 
@@ -1041,6 +1040,77 @@
             this.portMatDays.Name = "portMatDays";
             this.portMatDays.ReadOnly = true;
             // 
+            // tabPage2
+            // 
+            this.tabPage2.Controls.Add(this.dataGridViewRecom);
+            this.tabPage2.Location = new System.Drawing.Point(4, 22);
+            this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage2.Size = new System.Drawing.Size(1352, 657);
+            this.tabPage2.TabIndex = 3;
+            this.tabPage2.Text = "Рекомендации";
+            this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // dataGridViewRecom
+            // 
+            this.dataGridViewRecom.AllowUserToAddRows = false;
+            this.dataGridViewRecom.AllowUserToDeleteRows = false;
+            this.dataGridViewRecom.AllowUserToResizeRows = false;
+            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            dataGridViewCellStyle4.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle4.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle4.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle4.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridViewRecom.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
+            this.dataGridViewRecom.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridViewRecom.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.recomName,
+            this.recomSecCode,
+            this.recomCurrentKoupon,
+            this.recomCurrACY,
+            this.recomMatDays});
+            this.dataGridViewRecom.Location = new System.Drawing.Point(3, 3);
+            this.dataGridViewRecom.MultiSelect = false;
+            this.dataGridViewRecom.Name = "dataGridViewRecom";
+            this.dataGridViewRecom.ReadOnly = true;
+            this.dataGridViewRecom.RowHeadersVisible = false;
+            this.dataGridViewRecom.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            this.dataGridViewRecom.Size = new System.Drawing.Size(992, 528);
+            this.dataGridViewRecom.TabIndex = 18;
+            // 
+            // recomName
+            // 
+            this.recomName.HeaderText = "Бумага";
+            this.recomName.Name = "recomName";
+            this.recomName.ReadOnly = true;
+            this.recomName.Width = 120;
+            // 
+            // recomSecCode
+            // 
+            this.recomSecCode.HeaderText = "Код";
+            this.recomSecCode.Name = "recomSecCode";
+            this.recomSecCode.ReadOnly = true;
+            // 
+            // recomCurrentKoupon
+            // 
+            this.recomCurrentKoupon.HeaderText = "ТекКупон";
+            this.recomCurrentKoupon.Name = "recomCurrentKoupon";
+            this.recomCurrentKoupon.ReadOnly = true;
+            // 
+            // recomCurrACY
+            // 
+            this.recomCurrACY.HeaderText = "ДохПокТек";
+            this.recomCurrACY.Name = "recomCurrACY";
+            this.recomCurrACY.ReadOnly = true;
+            // 
+            // recomMatDays
+            // 
+            this.recomMatDays.HeaderText = "ДнейДоПог";
+            this.recomMatDays.Name = "recomMatDays";
+            this.recomMatDays.ReadOnly = true;
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1062,7 +1132,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewDeals)).EndInit();
             this.tabControl.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewRecs)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPortf)).EndInit();
+            this.tabPage2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridViewRecom)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -1151,7 +1223,7 @@
         private System.Windows.Forms.TextBox textBoxGoalACY;
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.TabPage tabPage2;
-        private System.Windows.Forms.DataGridView dataGridViewRecs;
+        private System.Windows.Forms.DataGridView dataGridViewPortf;
         private System.Windows.Forms.DataGridViewTextBoxColumn portName;
         private System.Windows.Forms.DataGridViewTextBoxColumn portSecCode;
         private System.Windows.Forms.DataGridViewTextBoxColumn portQty;
@@ -1160,6 +1232,12 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn portSellACY;
         private System.Windows.Forms.DataGridViewTextBoxColumn portCurrACY;
         private System.Windows.Forms.DataGridViewTextBoxColumn portMatDays;
+        private System.Windows.Forms.DataGridView dataGridViewRecom;
+        private System.Windows.Forms.DataGridViewTextBoxColumn recomName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn recomSecCode;
+        private System.Windows.Forms.DataGridViewTextBoxColumn recomCurrentKoupon;
+        private System.Windows.Forms.DataGridViewTextBoxColumn recomCurrACY;
+        private System.Windows.Forms.DataGridViewTextBoxColumn recomMatDays;
     }
 }
 

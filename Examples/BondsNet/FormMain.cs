@@ -333,7 +333,7 @@ namespace BondsNet
                         isSubscribedToolOrderBook = _quik.OrderBook.IsSubscribed(tool.ClassCode, tool.SecurityCode).Result;
                         // Выводим в форму таблицу инструментов
                         listBoxSecCode.Items.Add(tool.SecurityCode);
-
+                        dataGridViewRecom.Rows.Add(tool.Name, tool.SecurityCode, tool.CouponPercent, 0, tool.days_to_mat);
                         if (isSubscribedToolOrderBook)
                         {
                             //    textBoxLogsWindow.AppendText("Подписка на стакан прошла успешно." + Environment.NewLine);
@@ -410,7 +410,8 @@ namespace BondsNet
                             if (id_tool >= 0)
                             {
                                 portfolio.Add(new Portfolio(tools[id_tool], p_item));
-                                dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, tools[id_tool].CouponPercent, 0, 0, tools[id_tool].days_to_mat);
+                                dataGridViewPortf.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, tools[id_tool].CouponPercent, 0, 0, tools[id_tool].days_to_mat);
+                                
                             }
                             else
                             {
@@ -422,7 +423,7 @@ namespace BondsNet
                                     {
                                         _tool = new Tool(_quik, sec, 0);
                                         portfolio.Add(new Portfolio(_tool, p_item));
-                                        dataGridViewRecs.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
+                                        dataGridViewPortf.Rows.Add(portfolio.Last().Name, portfolio.Last().SecurityCode, p_item.CurrentBalance, portfolio.Last().AwgPosPrice, _tool.CouponPercent, 0, 0, _tool.days_to_mat);
 
                                     }
 
@@ -782,7 +783,7 @@ namespace BondsNet
             {
 
 
-                row = dataGridViewRecs.Rows
+                row = dataGridViewPortf.Rows
                     .Cast<DataGridViewRow>()
                     .Where(r => r.Cells["portSecCode"].Value.ToString().Equals(portTool.SecurityCode))
                     .FirstOrDefault();
@@ -796,8 +797,8 @@ namespace BondsNet
                     if (sec_id < 0)
                     {
                         //если бумаги не входят в ломбардный лист, то подсвечиваем их
-                        dataGridViewRecs.Rows[row_id].DefaultCellStyle.BackColor = Color.LightSkyBlue;
-                        dataGridViewRecs.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
+                        dataGridViewPortf.Rows[row_id].DefaultCellStyle.BackColor = Color.LightSkyBlue;
+                        dataGridViewPortf.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
 
                     }
 
@@ -806,19 +807,19 @@ namespace BondsNet
                     {
 
                         double sellACY = portTool.СurrentCoupon + (Convert.ToDouble(portTool.Bid) - portTool.AwgPosPrice) / portTool.AwgPosPrice;
-                        dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
+                        dataGridViewPortf.Rows[row_id].Cells["portSellACY"].Value = Math.Round(sellACY, 3);
                         if (portTool.СurrentCoupon < sellACY)
                         {
-                            dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
-                            dataGridViewRecs.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
+                            dataGridViewPortf.Rows[row_id].Cells["portSellACY"].Style.BackColor = Color.LightGreen;
+                            dataGridViewPortf.Rows[row_id].DefaultCellStyle.ForeColor = Color.Black;
                         }
 
 
                     }
                     else
-                        dataGridViewRecs.Rows[row_id].Cells["portSellACY"].Value = 0;
+                        dataGridViewPortf.Rows[row_id].Cells["portSellACY"].Value = 0;
 
-                    dataGridViewRecs.Rows[row_id].Cells["portCurrACY"].Value = portTool.CurrentACY;
+                    dataGridViewPortf.Rows[row_id].Cells["portCurrACY"].Value = portTool.CurrentACY;
                 }
                     
 
